@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dev Cell — Design Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #020407;
+    --panel: rgba(5, 11, 16, 0.74);
+    --panel-2: rgba(8, 17, 24, 0.6);
+    --cyan: #8beaff;
+    --cyan-soft: #77e7ff;
+    --red: #ff3b6b;
+    --pink: #ff637c;
+    --text: #f2fafe;
+    --dim: rgba(226, 243, 250, 0.78);
+    --muted: rgba(226, 243, 250, 0.52);
+    --line: rgba(161, 229, 255, 0.16);
+    --line-red: rgba(255, 59, 107, 0.22);
+    --display: "Rajdhani", "Arial Narrow", sans-serif;
+    --mono: "Space Mono", "Courier New", monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 18% 4%, rgba(119, 231, 255, 0.10), transparent 30rem),
+      radial-gradient(circle at 86% 12%, rgba(255, 59, 107, 0.10), transparent 26rem),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(139, 234, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 234, 255, 0.04) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent 80%);
+  }
+  .wrap {
+    position: relative; z-index: 1;
+    width: min(calc(100% - 2.5rem), 64rem);
+    margin: 0 auto;
+    padding: 4.5rem 0 6rem;
+  }
+  .eyebrow {
+    font-size: 0.68rem; letter-spacing: 0.28em; text-transform: uppercase;
+    color: var(--cyan-soft); margin: 0;
+  }
+  h1, h2, h3, h4 { font-family: var(--display); margin: 0; }
+
+  /* ── Masthead ── */
+  .masthead {
+    border: 1px solid var(--line);
+    background: linear-gradient(135deg, rgba(12, 36, 49, 0.5), rgba(5, 10, 15, 0.78));
+    box-shadow: inset 0 0 0 1px rgba(224, 242, 254, 0.03), 0 1.5rem 4rem rgba(0, 0, 0, 0.34);
+    padding: clamp(1.6rem, 4vw, 2.8rem);
+    position: relative; overflow: hidden;
+  }
+  .masthead::before {
+    content: ""; position: absolute; top: -1px; left: 2rem;
+    width: 7rem; height: 2px; background: var(--red);
+    box-shadow: 0 0 1.4rem rgba(255, 59, 107, 0.8);
+  }
+  .masthead::after {
+    content: ""; position: absolute; top: -1px; right: 2rem;
+    width: 7rem; height: 2px; background: var(--cyan);
+    box-shadow: 0 0 1.4rem rgba(139, 234, 255, 0.8);
+  }
+  .masthead h1 {
+    font-size: clamp(2.6rem, 7vw, 4.8rem); font-weight: 700;
+    letter-spacing: -0.05em; line-height: 0.92; text-transform: uppercase;
+    margin-top: 1rem;
+  }
+  .masthead h1 .accent { color: var(--cyan); }
+  .lede {
+    max-width: 46rem; margin-top: 1.4rem; color: var(--dim);
+    font-size: 0.96rem; line-height: 1.85;
+  }
+  .lede strong { color: var(--text); font-weight: 400; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.6rem; }
+  .meta-chip {
+    border: 1px solid var(--line); background: var(--panel-2);
+    padding: 0.42rem 0.7rem; font-size: 0.64rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .meta-chip b { color: var(--cyan-soft); font-weight: 400; }
+
+  /* ── Thesis band ── */
+  .thesis {
+    margin-top: 1.6rem; border: 1px solid var(--line-red);
+    background: linear-gradient(135deg, rgba(40, 8, 18, 0.42), rgba(5, 10, 15, 0.78));
+    padding: clamp(1.4rem, 3.4vw, 2.2rem);
+  }
+  .thesis p { margin: 0.7rem 0 0; color: var(--dim); font-size: 0.92rem; line-height: 1.85; }
+  .thesis .big {
+    font-family: var(--display); font-size: clamp(1.4rem, 3.4vw, 2.1rem);
+    font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; color: var(--text);
+    margin-top: 0.7rem;
+  }
+  .thesis .big em { color: var(--cyan); font-style: normal; }
+
+  /* ── Section ── */
+  .section { margin-top: 3.6rem; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 1rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.9rem; margin-bottom: 1.6rem;
+  }
+  .section-head h2 {
+    font-size: clamp(1.5rem, 3.4vw, 2.2rem); font-weight: 700;
+    letter-spacing: -0.03em; text-transform: uppercase;
+  }
+  .section-head .idx { font-size: 0.7rem; letter-spacing: 0.2em; color: var(--pink); }
+  .section-head .effort {
+    margin-left: auto; font-size: 0.62rem; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  .move {
+    border: 1px solid var(--line); background: var(--panel);
+    backdrop-filter: blur(10px); padding: 1.5rem 1.6rem; margin-bottom: 1rem;
+    position: relative; transition: border-color 180ms ease, transform 180ms ease;
+  }
+  .move:hover { border-color: rgba(139, 234, 255, 0.3); transform: translateY(-1px); }
+  .move-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+  .pri {
+    font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 0.28rem 0.55rem; border: 1px solid currentColor; line-height: 1;
+  }
+  .pri.p1 { color: var(--red); }
+  .pri.p2 { color: var(--cyan); }
+  .pri.p3 { color: var(--muted); }
+  .move-cat { margin-left: auto; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+  .move h3 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; margin-top: 0.9rem; line-height: 1.12; }
+  .move p { margin: 0.7rem 0 0; color: var(--dim); font-size: 0.86rem; line-height: 1.82; }
+  .move .now-next {
+    margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border: 1px solid var(--line);
+  }
+  .move .now-next > div { padding: 0.85rem 1rem; }
+  .move .now-next .now { border-right: 1px solid var(--line); }
+  .nn-lbl { font-size: 0.56rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .now .nn-lbl { color: var(--muted); }
+  .next .nn-lbl { color: var(--cyan-soft); }
+  .move .now-next p { margin-top: 0.45rem; font-size: 0.78rem; line-height: 1.65; }
+  code {
+    font-family: var(--mono); font-size: 0.78em; color: var(--cyan);
+    background: rgba(139, 234, 255, 0.08); border: 1px solid rgba(139, 234, 255, 0.14);
+    padding: 0.08em 0.36em; white-space: nowrap;
+  }
+
+  /* ── Type specimen ── */
+  .specimen { border: 1px solid var(--line); background: var(--panel-2); margin-top: 0.4rem; }
+  .type-row {
+    display: grid; grid-template-columns: 8rem 1fr; gap: 1.2rem;
+    padding: 1rem 1.3rem; border-bottom: 1px solid var(--line); align-items: baseline;
+  }
+  .type-row:last-child { border-bottom: 0; }
+  .type-meta { font-size: 0.62rem; letter-spacing: 0.1em; color: var(--muted); line-height: 1.5; }
+  .type-meta b { display: block; color: var(--cyan-soft); font-weight: 400; font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; }
+  .type-sample { color: var(--text); }
+  .ts-display { font-family: var(--display); font-size: 2.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 0.95; text-transform: uppercase; }
+  .ts-h2 { font-family: var(--display); font-size: 1.7rem; font-weight: 600; letter-spacing: -0.02em; }
+  .ts-lead { font-family: var(--mono); font-size: 1.0rem; line-height: 1.7; color: var(--dim); }
+  .ts-body { font-family: var(--mono); font-size: 0.94rem; line-height: 1.75; color: var(--dim); }
+  .ts-label { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--cyan-soft); }
+
+  /* ── Color tokens ── */
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 0.7rem; margin-top: 0.4rem; }
+  .sw { border: 1px solid var(--line); background: var(--panel-2); overflow: hidden; }
+  .sw .chip { height: 3.4rem; }
+  .sw .meta { padding: 0.6rem 0.7rem; }
+  .sw .name { font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); }
+  .sw .hex { font-size: 0.64rem; color: var(--muted); margin-top: 0.2rem; }
+  .reds-note { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.9rem; }
+  .red-bad { display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--line); padding: 0.4rem 0.6rem; font-size: 0.66rem; color: var(--muted); }
+  .red-bad i { width: 0.9rem; height: 0.9rem; display: inline-block; }
+
+  /* ── Spacing scale ── */
+  .scale { margin-top: 0.4rem; display: grid; gap: 0.5rem; }
+  .scale-row { display: grid; grid-template-columns: 5rem 1fr; gap: 1rem; align-items: center; }
+  .scale-row .lbl { font-size: 0.66rem; color: var(--muted); letter-spacing: 0.08em; }
+  .scale-row .bar { height: 0.8rem; background: linear-gradient(90deg, var(--cyan), rgba(139,234,255,0.2)); }
+
+  /* ── Roadmap ── */
+  .roadmap { margin-top: 1rem; display: grid; gap: 1px; border: 1px solid var(--line); background: var(--line); }
+  .phase { background: var(--bg); padding: 1.3rem 1.5rem; }
+  .phase-head { display: flex; align-items: baseline; gap: 0.8rem; }
+  .phase-tag { font-family: var(--display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .phase.p1 .phase-tag { color: var(--red); }
+  .phase.p2 .phase-tag { color: var(--cyan); }
+  .phase.p3 .phase-tag { color: var(--muted); }
+  .phase h4 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+  .phase .goal { margin-left: auto; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .phase ul { margin: 0.9rem 0 0; padding-left: 1.1rem; }
+  .phase li { color: var(--dim); font-size: 0.84rem; line-height: 1.8; margin-bottom: 0.2rem; }
+  .phase li::marker { color: var(--pink); }
+
+  footer {
+    margin-top: 3rem; display: flex; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.6rem; font-size: 0.62rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  footer .dot {
+    display: inline-block; width: 0.42rem; height: 0.42rem; border-radius: 50%;
+    background: var(--cyan); box-shadow: 0 0 0.7rem rgba(139, 234, 255, 0.9);
+    margin-right: 0.5rem; vertical-align: middle;
+  }
+  @media (max-width: 720px) {
+    .type-row { grid-template-columns: 1fr; gap: 0.5rem; }
+    .move .now-next { grid-template-columns: 1fr; }
+    .move .now-next .now { border-right: 0; border-bottom: 1px solid var(--line); }
+    .move-cat { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Masthead ── -->
+  <header class="masthead" data-screen-label="Masthead">
+    <p class="eyebrow">Design Direction / Dev Cell Club</p>
+    <h1>The Next <span class="accent">Build</span></h1>
+    <p class="lede">A forward-looking design audit — the visual and experiential changes to make next, separate from the code cleanup already in motion. <strong>The identity is strong; the job now is to make content lead and tighten the system underneath it.</strong></p>
+    <div class="meta-row">
+      <span class="meta-chip"><b>Focus</b> &nbsp;Type · Color · Hierarchy · Signature moments</span>
+      <span class="meta-chip"><b>Moves</b> &nbsp;11</span>
+      <span class="meta-chip"><b>Phases</b> &nbsp;3</span>
+    </div>
+  </header>
+
+  <!-- ── Thesis ── -->
+  <section class="thesis" data-screen-label="Thesis">
+    <p class="eyebrow">The one-line thesis</p>
+    <p class="big">You built a <em>cinematic shell</em>. Now build the <em>system</em> that lives inside it — and let the work, not the effects, do the talking.</p>
+    <p>Right now the cockpit hero earns full attention, then every section after it competes at the same volume: glow, tilt, scanlines, HUD labels, blinking cursors on everything. Confident design has a loud opening and a calm body. The moves below pull the volume down everywhere except where it counts, fix the broken handoff, and give the page a real type and color system to stand on.</p>
+  </section>
+
+  <!-- ── 01 Type ── -->
+  <section class="section" data-screen-label="Typography">
+    <div class="section-head">
+      <span class="idx">01</span>
+      <h2>Typography System</h2>
+      <span class="effort">Highest leverage</span>
+    </div>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p1">Phase 1</span>
+        <span class="move-cat">Type ramp · Legibility</span>
+      </div>
+      <h3>Set a real type ramp — and raise the floor</h3>
+      <p>The current page runs body copy at ~12–13px, micro-labels at ~9px, much of it at 50–58% opacity. That's the single biggest thing holding the design at "above average." Commit to the ramp below: a confident display, a comfortable reading size, and a label that's small but never invisible. Same two fonts you already use.</p>
+      <div class="specimen">
+        <div class="type-row">
+          <div class="type-meta"><b>Display</b>Rajdhani 700<br />clamp(2.8–5.6rem)<br />-0.045em · UPPER</div>
+          <div class="type-sample"><div class="ts-display">Build real things</div></div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta"><b>Heading</b>Rajdhani 600<br />1.7rem · -0.02em</div>
+          <div class="type-sample"><div class="ts-h2">We help students learn, build, and ship.</div></div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta"><b>Lead</b>Space Mono 400<br />1.0rem · 1.7</div>
+          <div class="type-sample"><div class="ts-lead">A student developer community for building ambitious things with curious people.</div></div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta"><b>Body</b>Space Mono 400<br />0.94rem · 1.75</div>
+          <div class="type-sample"><div class="ts-body">We run practical sessions, collaborate on projects, and create space for ideas to become working software.</div></div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta"><b>Label</b>Space Mono 400<br />0.72rem · 0.22em</div>
+          <div class="type-sample"><div class="ts-label">/// Build Log · Unit 01</div></div>
+        </div>
+      </div>
+      <div class="now-next">
+        <div class="now"><span class="nn-lbl">Now</span><p>Body 0.74–0.84rem · labels 0.56rem · opacity 0.5–0.58</p></div>
+        <div class="next"><span class="nn-lbl">Next</span><p>Body 0.94rem · labels 0.72rem floor · opacity ≥ 0.72</p></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 02 Color ── -->
+  <section class="section" data-screen-label="Color">
+    <div class="section-head">
+      <span class="idx">02</span>
+      <h2>Color &amp; Tokens</h2>
+      <span class="effort">Foundational</span>
+    </div>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p1">Phase 1</span>
+        <span class="move-cat">Tokens · Consistency</span>
+      </div>
+      <h3>One red, named tokens, no more magic rgba</h3>
+      <p>Three different reds are doing the same job across the codebase — the theme's <code>#d81c3d</code>, a hot <code>rgba(255,45,85)</code>, and a flat <code>#ef4444</code> — scattered as literals inside utility strings. Pick one, name the whole accent set, and reference tokens instead of raw values. This is what makes the cyber palette read as deliberate rather than improvised.</p>
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:#020407"></div><div class="meta"><div class="name">Base</div><div class="hex">#020407</div></div></div>
+        <div class="sw"><div class="chip" style="background:linear-gradient(135deg,#0c2431,#05101a)"></div><div class="meta"><div class="name">Panel</div><div class="hex">rgba(5,11,16,.78)</div></div></div>
+        <div class="sw"><div class="chip" style="background:#8beaff"></div><div class="meta"><div class="name">Accent · Cyan</div><div class="hex">#8beaff</div></div></div>
+        <div class="sw"><div class="chip" style="background:#ff3b6b"></div><div class="meta"><div class="name">Accent · Red</div><div class="hex">#ff3b6b — pick one</div></div></div>
+        <div class="sw"><div class="chip" style="background:#ff637c"></div><div class="meta"><div class="name">Accent · Pink</div><div class="hex">#ff637c</div></div></div>
+        <div class="sw"><div class="chip" style="background:rgba(226,243,250,.78)"></div><div class="meta"><div class="name">Text · Dim</div><div class="hex">.78 alpha floor</div></div></div>
+      </div>
+      <div class="reds-note">
+        <span class="red-bad"><i style="background:#d81c3d"></i>#d81c3d</span>
+        <span class="red-bad"><i style="background:#ff2d55"></i>rgba(255,45,85)</span>
+        <span class="red-bad"><i style="background:#ef4444"></i>#ef4444</span>
+        <span class="red-bad" style="border-color:var(--line-red);color:var(--pink)">→ collapse to one</span>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 03 Handoff ── -->
+  <section class="section" data-screen-label="Handoff">
+    <div class="section-head">
+      <span class="idx">03</span>
+      <h2>The Hero Handoff</h2>
+      <span class="effort">Signature moment</span>
+    </div>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p1">Phase 1</span>
+        <span class="move-cat">Transition · Continuity</span>
+      </div>
+      <h3>Dissolve the cockpit into the field — kill the blackout</h3>
+      <p>The most visible flaw on the page. The warm, photoreal cockpit drops onto a cool abstract network field through a near-black curtain (<code>#about::before</code> fades to <code>rgba(3,13,21,0.88)</code>). It reads as a cut, not a transition. Three fixes, in order: soften that band to ~<code>0.4</code> so the layers cross-fade; ease the hero's <code>saturate/brightness</code> down at the end of scroll so it cools into the field; and let the network nodes begin faintly inside the bottom of the hero so the eye reads one continuous space.</p>
+      <div class="now-next">
+        <div class="now"><span class="nn-lbl">Now</span><p>Photoreal scene → black curtain → abstract field. A hard cut between two unrelated looks.</p></div>
+        <div class="next"><span class="nn-lbl">Next</span><p>Cockpit cools + dissolves into the network that's already faintly present. One space, settling.</p></div>
+      </div>
+    </article>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p2">Phase 2</span>
+        <span class="move-cat">Background density</span>
+      </div>
+      <h3>Quiet the first screen after the hero</h3>
+      <p>You currently go from a max-busy hero to a still-busy background (network + grid + horizon + sweep + scanlines + glows all at once). Drop the background density in the first viewport after the handoff so it feels like the scene <em>settles</em>, then let it breathe back in further down. Calm directly under the loudest moment is what makes the loud moment land.</p>
+    </article>
+  </section>
+
+  <!-- ── 04 Restraint ── -->
+  <section class="section" data-screen-label="Restraint">
+    <div class="section-head">
+      <span class="idx">04</span>
+      <h2>Restraint &amp; Card System</h2>
+      <span class="effort">Re-usable</span>
+    </div>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p2">Phase 2</span>
+        <span class="move-cat">Hierarchy · Effects</span>
+      </div>
+      <h3>Build a card hierarchy instead of one HUD treatment everywhere</h3>
+      <p>Every card — value cards, lanes, projects, events, team — wears the same costume: glow border, tilt, scanline overlay, <code>///</code> bar, <code>UNIT 01</code> tag, blinking cursor, chip dots. When everything shimmers, nothing leads. Define three tiers: a <strong>feature</strong> card (one per section, keeps the full treatment), a <strong>standard</strong> card (flat panel, one accent line, real content), and a <strong>list</strong> row (text-led, minimal). Reserve motion and glow for the feature tier.</p>
+      <div class="now-next">
+        <div class="now"><span class="nn-lbl">Now</span><p>~20 cards, all max-decoration, all equal weight.</p></div>
+        <div class="next"><span class="nn-lbl">Next</span><p>3 tiers. The eye knows where to go on every screen.</p></div>
+      </div>
+    </article>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p2">Phase 2</span>
+        <span class="move-cat">Content honesty</span>
+      </div>
+      <h3>Cut the decorative "data slop"</h3>
+      <p>The <code>///</code> prefixes, <code>BUILD_LOG</code> / <code>UNIT 02</code> tags, status pills and chip-dot rows are atmosphere standing in for information — they read as filler. Keep the device on the few places it means something (a real status, a real count) and strip it everywhere it's pure decoration. Less HUD makes the remaining HUD feel earned.</p>
+    </article>
+  </section>
+
+  <!-- ── 05 Content ── -->
+  <section class="section" data-screen-label="Proof">
+    <div class="section-head">
+      <span class="idx">05</span>
+      <h2>Proof &amp; Imagery</h2>
+      <span class="effort">Perceived quality</span>
+    </div>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p2">Phase 2</span>
+        <span class="move-cat">Imagery · Trust</span>
+      </div>
+      <h3>Show the work and the faces</h3>
+      <p>A builder community's strongest design asset is evidence it's real. Team avatars are generated initials; projects are described but never shown. Add a <strong>proof layer</strong>: real member photos, and project cards that show an actual screenshot/thumbnail of the thing. One screen of real work outperforms any new effect for perceived quality — and it's the natural home for the cyan/red framing you already love.</p>
+    </article>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p3">Phase 3</span>
+        <span class="move-cat">Imagery placeholders</span>
+      </div>
+      <h3>Design real image slots now, even before content exists</h3>
+      <p>Don't leave gaps — design intentional placeholder slots (labelled, framed in the brand HUD style) so the layout is built for imagery from day one and content can drop straight in. Avoids a redesign later when the photos arrive.</p>
+    </article>
+  </section>
+
+  <!-- ── 06 Motion & rhythm ── -->
+  <section class="section" data-screen-label="Motion">
+    <div class="section-head">
+      <span class="idx">06</span>
+      <h2>Motion &amp; Spacing</h2>
+      <span class="effort">Polish</span>
+    </div>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p3">Phase 3</span>
+        <span class="move-cat">Motion language</span>
+      </div>
+      <h3>One entrance choreography, fewer infinite loops</h3>
+      <p>Reveal-on-scroll is good; the always-looping pulses (glowing dots, breathing headings, animated borders) add ambient noise. Define a single entrance curve for content, keep one or two intentional ambient motions (the nav dot is enough), and let stillness be the default state.</p>
+    </article>
+
+    <article class="move">
+      <div class="move-top">
+        <span class="pri p3">Phase 3</span>
+        <span class="move-cat">Vertical rhythm</span>
+      </div>
+      <h3>Lock a spacing scale and section rhythm</h3>
+      <p>Spacing is currently a mix of <code>rem</code> literals and <code>clamp()</code> one-offs per page. Commit to one scale and apply it everywhere — consistent section padding, consistent gaps, consistent heading-to-body distance. Quiet structure the reader feels without noticing.</p>
+      <div class="scale">
+        <div class="scale-row"><span class="lbl">4px · xs</span><div class="bar" style="width:4%"></div></div>
+        <div class="scale-row"><span class="lbl">8px · sm</span><div class="bar" style="width:8%"></div></div>
+        <div class="scale-row"><span class="lbl">16px · md</span><div class="bar" style="width:16%"></div></div>
+        <div class="scale-row"><span class="lbl">24px · lg</span><div class="bar" style="width:24%"></div></div>
+        <div class="scale-row"><span class="lbl">48px · xl</span><div class="bar" style="width:48%"></div></div>
+        <div class="scale-row"><span class="lbl">96px · 2xl</span><div class="bar" style="width:80%"></div></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── Roadmap ── -->
+  <section class="section" data-screen-label="Roadmap">
+    <div class="section-head">
+      <span class="idx">07</span>
+      <h2>Phased Roadmap</h2>
+      <span class="effort">Sequence</span>
+    </div>
+    <div class="roadmap">
+      <div class="phase p1">
+        <div class="phase-head">
+          <span class="phase-tag">P1</span>
+          <h4>Foundation</h4>
+          <span class="goal">Biggest perceived-quality jump</span>
+        </div>
+        <ul>
+          <li>Set the type ramp + raise the legibility floor (01)</li>
+          <li>Collapse to one red, expose named tokens (02)</li>
+          <li>Fix the hero handoff — dissolve, not blackout (03)</li>
+        </ul>
+      </div>
+      <div class="phase p2">
+        <div class="phase-head">
+          <span class="phase-tag">P2</span>
+          <h4>System</h4>
+          <span class="goal">Make content lead</span>
+        </div>
+        <ul>
+          <li>Three-tier card hierarchy; reserve glow for feature cards (04)</li>
+          <li>Cut decorative HUD / data slop (04)</li>
+          <li>Quiet the first screen after the hero (03)</li>
+          <li>Add the proof layer — real faces &amp; project shots (05)</li>
+        </ul>
+      </div>
+      <div class="phase p3">
+        <div class="phase-head">
+          <span class="phase-tag">P3</span>
+          <h4>Polish</h4>
+          <span class="goal">Finish the feel</span>
+        </div>
+        <ul>
+          <li>Designed image slots for incoming content (05)</li>
+          <li>One entrance curve, fewer infinite loops (06)</li>
+          <li>Lock the spacing scale &amp; section rhythm (06)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span><span class="dot"></span>Dev Cell Club — Design Direction</span>
+    <span>11 moves · 3 phases · Identity stays, system levels up</span>
+  </footer>
+
+</div>
+</body>
+</html>

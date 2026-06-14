@@ -1,0 +1,5 @@
+2026/06/04-23:28:16.453 b50 Creating DB C:\python_practice\homepage\.tmp\cockpit-frames\browser-profile\Default\EdgeCoupons/coupons_data.db since it was missing.
+2026/06/04-23:28:16.467 b50 Reusing MANIFEST C:\python_practice\homepage\.tmp\cockpit-frames\browser-profile\Default\EdgeCoupons/coupons_data.db/MANIFEST-000001
+2026/06/04-23:28:16.678 668c Level-0 table #5: started
+2026/06/04-23:28:16.682 668c Level-0 table #5: 682661 bytes OK
+2026/06/04-23:28:16.685 668c Delete type=0 #3

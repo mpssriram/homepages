@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dev Cell — Codebase Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #020407;
+    --panel: rgba(5, 11, 16, 0.74);
+    --panel-2: rgba(8, 17, 24, 0.6);
+    --cyan: #8beaff;
+    --cyan-soft: #77e7ff;
+    --red: #ff3b6b;
+    --pink: #ff637c;
+    --text: #f2fafe;
+    --dim: rgba(226, 243, 250, 0.74);
+    --muted: rgba(226, 243, 250, 0.5);
+    --line: rgba(161, 229, 255, 0.16);
+    --line-red: rgba(255, 59, 107, 0.22);
+    --display: "Rajdhani", "Arial Narrow", sans-serif;
+    --mono: "Space Mono", "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 18% 4%, rgba(119, 231, 255, 0.10), transparent 30rem),
+      radial-gradient(circle at 86% 12%, rgba(255, 59, 107, 0.10), transparent 26rem),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(139, 234, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 234, 255, 0.04) 1px, transparent 1px);
+    background-size: 4rem 4rem;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent 80%);
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    width: min(calc(100% - 2.5rem), 64rem);
+    margin: 0 auto;
+    padding: 4.5rem 0 6rem;
+  }
+
+  .eyebrow {
+    font-size: 0.66rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--cyan-soft);
+    margin: 0;
+  }
+
+  h1, h2, h3 { font-family: var(--display); margin: 0; }
+
+  /* ── Masthead ── */
+  .masthead {
+    border: 1px solid var(--line);
+    background: linear-gradient(135deg, rgba(12, 36, 49, 0.5), rgba(5, 10, 15, 0.78));
+    box-shadow: inset 0 0 0 1px rgba(224, 242, 254, 0.03), 0 1.5rem 4rem rgba(0, 0, 0, 0.34);
+    padding: clamp(1.6rem, 4vw, 2.8rem);
+    position: relative;
+    overflow: hidden;
+  }
+  .masthead::before {
+    content: "";
+    position: absolute; top: -1px; left: 2rem;
+    width: 7rem; height: 2px;
+    background: var(--red);
+    box-shadow: 0 0 1.4rem rgba(255, 59, 107, 0.8);
+  }
+  .masthead::after {
+    content: "";
+    position: absolute; top: -1px; right: 2rem;
+    width: 7rem; height: 2px;
+    background: var(--cyan);
+    box-shadow: 0 0 1.4rem rgba(139, 234, 255, 0.8);
+  }
+  .masthead h1 {
+    font-size: clamp(2.6rem, 7vw, 4.8rem);
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+    text-transform: uppercase;
+    margin-top: 1rem;
+  }
+  .masthead h1 .accent { color: var(--cyan); }
+  .masthead .lede {
+    max-width: 44rem;
+    margin-top: 1.4rem;
+    color: var(--dim);
+    font-size: 0.92rem;
+    line-height: 1.85;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.6rem;
+  }
+  .meta-chip {
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    padding: 0.42rem 0.7rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .meta-chip b { color: var(--cyan-soft); font-weight: 400; }
+
+  /* ── Scorecard ── */
+  .scorecard {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    margin-top: 1.6rem;
+    border: 1px solid var(--line);
+    background: var(--line);
+  }
+  .score {
+    background: var(--bg);
+    padding: 1.3rem 1.1rem;
+  }
+  .score .num {
+    font-family: var(--display);
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .score.crit .num { color: var(--red); }
+  .score.high .num { color: var(--pink); }
+  .score.med .num { color: var(--cyan); }
+  .score.low .num { color: var(--muted); }
+  .score .lbl {
+    margin-top: 0.5rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── Section ── */
+  .section { margin-top: 3.4rem; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.9rem;
+    margin-bottom: 1.6rem;
+  }
+  .section-head h2 {
+    font-size: clamp(1.5rem, 3.4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+  .section-head .idx {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    color: var(--pink);
+  }
+  .section-head .count {
+    margin-left: auto;
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── Finding card ── */
+  .find {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    padding: 1.4rem 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+    transition: border-color 180ms ease, transform 180ms ease;
+  }
+  .find:hover { border-color: rgba(139, 234, 255, 0.32); transform: translateY(-1px); }
+  .find::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+  }
+  .find.sev-crit::before { background: var(--red); box-shadow: 0 0 1rem rgba(255, 59, 107, 0.6); }
+  .find.sev-high::before { background: var(--pink); }
+  .find.sev-med::before { background: var(--cyan); }
+  .find.sev-low::before { background: var(--muted); }
+
+  .find-top {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.28rem 0.55rem;
+    border: 1px solid currentColor;
+    line-height: 1;
+  }
+  .tag.crit { color: var(--red); }
+  .tag.high { color: var(--pink); }
+  .tag.med { color: var(--cyan); }
+  .tag.low { color: var(--muted); }
+  .find-id {
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+  }
+  .find-cat {
+    margin-left: auto;
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .find h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-top: 0.9rem;
+    line-height: 1.1;
+  }
+  .find p {
+    margin: 0.7rem 0 0;
+    color: var(--dim);
+    font-size: 0.82rem;
+    line-height: 1.8;
+  }
+  .find p + p { margin-top: 0.5rem; }
+  .find .fix {
+    margin-top: 0.9rem;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+  }
+  .find .fix .fix-lbl {
+    flex: 0 0 auto;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--cyan-soft);
+    padding-top: 0.1rem;
+  }
+  .find .fix p { margin: 0; color: var(--text); font-size: 0.82rem; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.76em;
+    color: var(--cyan);
+    background: rgba(139, 234, 255, 0.08);
+    border: 1px solid rgba(139, 234, 255, 0.14);
+    padding: 0.08em 0.36em;
+    white-space: nowrap;
+  }
+  .find p code { color: #cbeeff; }
+
+  /* ── Closing ── */
+  .closing {
+    margin-top: 3.6rem;
+    border: 1px solid var(--line-red);
+    background: linear-gradient(135deg, rgba(40, 8, 18, 0.46), rgba(5, 10, 15, 0.8));
+    padding: clamp(1.6rem, 4vw, 2.6rem);
+  }
+  .closing h2 {
+    font-size: clamp(1.6rem, 4vw, 2.6rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    margin-top: 0.9rem;
+  }
+  .closing ol {
+    margin: 1.4rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+  .closing li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .closing li::before {
+    content: counter(step, decimal-leading-zero);
+    font-family: var(--display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--pink);
+  }
+  .closing li span { color: var(--dim); font-size: 0.84rem; line-height: 1.7; }
+  .closing li b { color: var(--text); font-weight: 700; }
+
+  footer {
+    margin-top: 3rem;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  footer .dot {
+    display: inline-block;
+    width: 0.42rem; height: 0.42rem;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 0.7rem rgba(139, 234, 255, 0.9);
+    margin-right: 0.5rem;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 720px) {
+    .scorecard { grid-template-columns: repeat(2, 1fr); }
+    .find-cat { margin-left: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Masthead ── -->
+  <header class="masthead" data-screen-label="Masthead">
+    <p class="eyebrow">Engineering Review / Dev Cell Club</p>
+    <h1>Codebase <span class="accent">Audit</span><br />&amp; Improvement Map</h1>
+    <p class="lede">A read-through of the Vite + React + TypeScript build. Findings are grouped by area and ranked by impact, each with the exact files involved and a recommended fix. Nothing here is broken at runtime — these are the changes that make the site lighter, cleaner, and launch-ready.</p>
+    <div class="meta-row">
+      <span class="meta-chip"><b>Stack</b> &nbsp;Vite · React 19 · TS · Tailwind 4 · Framer Motion</span>
+      <span class="meta-chip"><b>Scope</b> &nbsp;src/ · public/ · config</span>
+      <span class="meta-chip"><b>Findings</b> &nbsp;16</span>
+    </div>
+
+    <div class="scorecard">
+      <div class="score crit">
+        <div class="num">1</div>
+        <div class="lbl">Critical</div>
+      </div>
+      <div class="score high">
+        <div class="num">5</div>
+        <div class="lbl">High</div>
+      </div>
+      <div class="score med">
+        <div class="num">6</div>
+        <div class="lbl">Medium</div>
+      </div>
+      <div class="score low">
+        <div class="num">4</div>
+        <div class="lbl">Low</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── 01 Performance ── -->
+  <section class="section" data-screen-label="Performance">
+    <div class="section-head">
+      <span class="idx">01</span>
+      <h2>Performance &amp; Payload</h2>
+      <span class="count">4 findings</span>
+    </div>
+
+    <article class="find sev-crit">
+      <div class="find-top">
+        <span class="tag crit">Critical</span>
+        <span class="find-id">P-01</span>
+        <span class="find-cat">Dead CSS · Bundle</span>
+      </div>
+      <h3>~4,000 lines of <code>legacy.css</code> ship to every visitor, ~95% unused</h3>
+      <p><code>src/legacy.css</code> is imported in <code>main.tsx</code> and bundled in full, but the pages were migrated to inline Tailwind + <code>cinematic-background.css</code>. Selectors like <code>.community-page</code>, <code>.team-hero</code>, <code>.journey-step</code>, <code>.culture-pill</code>, <code>.signal-strip</code> appear <em>nowhere</em> in any <code>.tsx</code> file — only inside <code>legacy.css</code> itself.</p>
+      <p>Only a small hero subset stays live (<code>.cockpit-hero</code>, <code>.static-hero</code>, <code>.sticky-viewport</code>, <code>.hero-canvas</code>, <code>.canvas-loader</code>) — and several of those are <em>also</em> redefined in <code>cinematic-background.css</code>, so they're duplicated.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Delete the dead rules; keep only the live hero classes (ideally fold them into <code>cinematic-background.css</code> and drop the file). Easily the biggest CSS-payload win available.</p>
+      </div>
+    </article>
+
+    <article class="find sev-high">
+      <div class="find-top">
+        <span class="tag high">High</span>
+        <span class="find-id">P-02</span>
+        <span class="find-cat">Assets · Load time</span>
+      </div>
+      <h3>240-frame WebP scroll sequence on the homepage hero</h3>
+      <p><code>public/cockpit-sequence/</code> holds 240 WebP frames driven by scroll (<code>COCKPIT_FRAME_COUNT = 240</code>). The mitigations are genuinely good — static poster fallback for mobile + reduced-motion, batched preloading, DPR capped at 1.5 — but on desktop this is still a large progressive download before the effect is smooth.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Trim to ~90–120 frames (scroll mapping won't notice), or switch to a compressed <code>&lt;video&gt;</code>/WebM with the canvas as fallback. Measure total transferred bytes and set a budget.</p>
+      </div>
+    </article>
+
+    <article class="find sev-med">
+      <div class="find-top">
+        <span class="tag med">Medium</span>
+        <span class="find-id">P-03</span>
+        <span class="find-cat">Repo hygiene</span>
+      </div>
+      <h3>302 source JPG frames committed in <code>finalphotos/</code></h3>
+      <p>The <code>finalphotos/ezgif-frame-*.jpg</code> set looks like the <em>source</em> input that the <code>prepare:cockpit</code> step turns into the WebP sequence. These are build inputs, not runtime assets — they bloat clone size and the repo with no benefit to the shipped site.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Move them out of the repo (or <code>.gitignore</code> them) and keep the WebP output as the only tracked sequence.</p>
+      </div>
+    </article>
+
+    <article class="find sev-low">
+      <div class="find-top">
+        <span class="tag low">Low</span>
+        <span class="find-id">P-04</span>
+        <span class="find-cat">Dead code</span>
+      </div>
+      <h3>No-op motion transform in <code>CockpitHero.tsx</code></h3>
+      <p><code>overlayOpacity = useTransform(scrollYProgress, [0, 1], [1, 1])</code> maps every input to a constant <code>1</code> — it does nothing and can be removed along with the prop it feeds into <code>HeroOverlay</code>.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Drop the transform and the <code>overlayOpacity</code> plumbing, or give it a real range if a fade was intended.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 02 Architecture ── -->
+  <section class="section" data-screen-label="Architecture">
+    <div class="section-head">
+      <span class="idx">02</span>
+      <h2>Architecture &amp; DRY</h2>
+      <span class="count">3 findings</span>
+    </div>
+
+    <article class="find sev-high">
+      <div class="find-top">
+        <span class="tag high">High</span>
+        <span class="find-id">A-01</span>
+        <span class="find-cat">Duplication</span>
+      </div>
+      <h3>The same CTA button is copy-pasted as a giant class string 12+ times</h3>
+      <p>The red-gradient call-to-action (<code>inline-flex … border … bg-[linear-gradient(135deg,#ff3b3b,#ff4fd8)] …</code>) is repeated verbatim across <code>CommunityPage</code>, <code>ProjectsPage</code>, <code>EventsPage</code> and <code>TeamPage</code>. This directly contradicts your own <code>AGENTS.md</code>: "Reuse existing UI components before adding new one-off patterns."</p>
+      <p>A side effect: the baked-in <code>mt-8</code> margin lives <em>inside</em> the button string, so spacing is coupled to the component everywhere it's used.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Extract a <code>&lt;CtaLink variant="primary|ghost|cyan"&gt;</code> in <code>components/ui/</code>. One source of truth for padding, color and hover; pages just pass <code>href</code> + label.</p>
+      </div>
+    </article>
+
+    <article class="find sev-med">
+      <div class="find-top">
+        <span class="tag med">Medium</span>
+        <span class="find-id">A-02</span>
+        <span class="find-cat">Duplication</span>
+      </div>
+      <h3><code>SectionHeader</code> and <code>AnimatedBlock</code> are redefined in four files</h3>
+      <p>Near-identical <code>SectionHeader</code> and <code>AnimatedBlock</code> helpers are declared independently inside Community, Projects, Events and Team pages — and <code>HomePage</code>'s <code>RevealBlock</code> is the same idea again. Five copies of two patterns drift apart over time.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Hoist both into <code>components/ui/</code> and import them. One <code>Reveal</code> wrapper and one <code>SectionHeader</code> for the whole site.</p>
+      </div>
+    </article>
+
+    <article class="find sev-med">
+      <div class="find-top">
+        <span class="tag med">Medium</span>
+        <span class="find-id">A-03</span>
+        <span class="find-cat">Design tokens</span>
+      </div>
+      <h3>Three different "brand reds" used interchangeably</h3>
+      <p>The theme defines <code>--color-accent-red: #d81c3d</code>, but pages bypass it with raw <code>rgba(255,45,85,…)</code> and <code>#ef4444</code> in inline class strings. That's three reds doing the same job, scattered as magic values across hundreds of utility classes — hard to keep consistent or re-theme.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Pick one canonical red, expose cyan/red/pink as theme tokens, and reference <code>accent-red</code> / <code>accent-cyan</code> instead of literal rgba in markup.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 03 Accessibility ── -->
+  <section class="section" data-screen-label="Accessibility">
+    <div class="section-head">
+      <span class="idx">03</span>
+      <h2>Accessibility</h2>
+      <span class="count">3 findings</span>
+    </div>
+
+    <article class="find sev-high">
+      <div class="find-top">
+        <span class="tag high">High</span>
+        <span class="find-id">AX-01</span>
+        <span class="find-cat">Legibility · Contrast</span>
+      </div>
+      <h3>Micro-labels at ~9px and low-opacity body text likely fail WCAG AA</h3>
+      <p>Status labels and HUD captions render at <code>0.56rem</code> (~9px) and eyebrows at <code>0.62rem</code> (~10px), often at text opacity <code>0.5–0.58</code> over a dark gradient. The micro-labels are below comfortable reading size, and the faint dim text probably misses the 4.5:1 contrast bar.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Floor body/caption text around 12–13px, raise the dimmest opacities, and spot-check contrast on the hero and card backgrounds.</p>
+      </div>
+    </article>
+
+    <article class="find sev-med">
+      <div class="find-top">
+        <span class="tag med">Medium</span>
+        <span class="find-id">AX-02</span>
+        <span class="find-cat">Keyboard · Focus</span>
+      </div>
+      <h3>No focus management on client-side route change</h3>
+      <p>The custom router in <code>App.tsx</code> updates <code>document.title</code> and scroll position, but focus is never moved to the new page's heading and there's no skip-link. Keyboard and screen-reader users stay parked on the old, now-unmounted context after navigating.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>On route change, move focus to the page's <code>&lt;h1&gt;</code> (or a visually-hidden route announcer) and add a "skip to content" link.</p>
+      </div>
+    </article>
+
+    <article class="find sev-low">
+      <div class="find-top">
+        <span class="tag low">Low</span>
+        <span class="find-id">AX-03</span>
+        <span class="find-cat">Media</span>
+      </div>
+      <h3>Team avatars are initials-only placeholders</h3>
+      <p>The team grid renders generated initials rather than real photos, so there's no meaningful imagery or <code>alt</code> content for who's on the crew.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Drop in real member photos with descriptive alt text once content is ready (ties into C-01).</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 04 Content ── -->
+  <section class="section" data-screen-label="Content">
+    <div class="section-head">
+      <span class="idx">04</span>
+      <h2>Content &amp; Data</h2>
+      <span class="count">1 finding</span>
+    </div>
+
+    <article class="find sev-high">
+      <div class="find-top">
+        <span class="tag high">High</span>
+        <span class="find-id">C-01</span>
+        <span class="find-cat">Launch blocker</span>
+      </div>
+      <h3>Placeholder content throughout — not launch-ready</h3>
+      <p>Team members are generic roles ("Club Coordinator", "Technical Lead", "Events Lead") rather than real people; the contact is a placeholder <code>hello@devcell.club</code>; the footer GitHub link points at <code>github.com</code> root; and events are templated ("Friday / Week 1", "Saturday / Week 1"). The structure is solid, but every concrete detail is stubbed.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Replace with real names, photos, a working contact, the actual club GitHub/socials, and a real upcoming-events feed before going public.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 05 SEO ── -->
+  <section class="section" data-screen-label="SEO">
+    <div class="section-head">
+      <span class="idx">05</span>
+      <h2>SEO &amp; Metadata</h2>
+      <span class="count">3 findings</span>
+    </div>
+
+    <article class="find sev-med">
+      <div class="find-top">
+        <span class="tag med">Medium</span>
+        <span class="find-id">S-01</span>
+        <span class="find-cat">SEO · Social</span>
+      </div>
+      <h3>Only <code>document.title</code> changes per route — no per-page meta</h3>
+      <p>The router updates the tab title but there's no per-route <code>meta description</code>, canonical URL, or Open Graph / Twitter card. As an SPA served from a single <code>index.html</code>, shared links and crawler snapshots get one generic description for every page.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Manage head tags per route (a small head-effect hook or <code>react-helmet</code>), and consider static pre-rendering for the five known routes.</p>
+      </div>
+    </article>
+
+    <article class="find sev-low">
+      <div class="find-top">
+        <span class="tag low">Low</span>
+        <span class="find-id">S-02</span>
+        <span class="find-cat">Metadata</span>
+      </div>
+      <h3><code>index.html</code> missing favicon, touch icon and OG image</h3>
+      <p>The document has a good <code>theme-color</code> and description, but no <code>&lt;link rel="icon"&gt;</code>, no <code>apple-touch-icon</code>, and no <code>og:image</code> — so browser tabs and social previews fall back to defaults.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Add a favicon set, an apple-touch-icon, and a 1200×630 OG image referencing the cockpit hero.</p>
+      </div>
+    </article>
+
+    <article class="find sev-low">
+      <div class="find-top">
+        <span class="tag low">Low</span>
+        <span class="find-id">S-03</span>
+        <span class="find-cat">Routing</span>
+      </div>
+      <h3><code>/about</code> and <code>/community</code> render the same page</h3>
+      <p>Both routes map to <code>CommunityPage</code>. That's a deliberate alias, but two URLs serving identical content reads as duplicate content to crawlers and splits any inbound links.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Pick one canonical path and 301/redirect or <code>rel=canonical</code> the other.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 06 Tooling ── -->
+  <section class="section" data-screen-label="Tooling">
+    <div class="section-head">
+      <span class="idx">06</span>
+      <h2>Tooling &amp; Robustness</h2>
+      <span class="count">2 findings</span>
+    </div>
+
+    <article class="find sev-med">
+      <div class="find-top">
+        <span class="tag med">Medium</span>
+        <span class="find-id">T-01</span>
+        <span class="find-cat">DX · CI</span>
+      </div>
+      <h3>No linting, formatting, or tests configured</h3>
+      <p><code>package.json</code> only has <code>dev</code>, <code>build</code>, <code>typecheck</code> and <code>preview</code> — no ESLint, no Prettier, no test runner. For a club codebase that new student contributors will touch (a stated goal of the site itself), that's a meaningful guardrail gap.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Add ESLint + Prettier with a shared config and a minimal CI check on PRs, so first-time contributors get instant feedback.</p>
+      </div>
+    </article>
+
+    <article class="find sev-low">
+      <div class="find-top">
+        <span class="tag low">Low</span>
+        <span class="find-id">T-02</span>
+        <span class="find-cat">Scripts</span>
+      </div>
+      <h3>Dangling <code>prepare:cockpit</code> script reference</h3>
+      <p><code>package.json</code> defines <code>prepare:cockpit → node scripts/prepare-cockpit-sequence.mjs</code>, but there's no <code>scripts/</code> directory in the tree. Anyone running it (or regenerating the sequence) hits a missing-file error.</p>
+      <div class="fix">
+        <span class="fix-lbl">Fix</span>
+        <p>Commit the script (it's the bridge from <code>finalphotos/</code> → WebP), or remove the npm entry if the pipeline lives elsewhere.</p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── Closing ── -->
+  <section class="closing" data-screen-label="Next steps">
+    <p class="eyebrow">Recommended order</p>
+    <h2>Where to start</h2>
+    <ol>
+      <li><span><b>Strip <code>legacy.css</code> (P-01).</b> Pure deletion, instant payload win, zero visual change — verify with a quick screenshot pass.</span></li>
+      <li><span><b>Extract the CTA + shared <code>SectionHeader</code>/<code>Reveal</code> (A-01, A-02).</b> Makes every later edit cheaper and enforces consistency.</span></li>
+      <li><span><b>Lighten the hero sequence (P-02) and de-repo the source frames (P-03).</b> Real first-load and clone-size improvements.</span></li>
+      <li><span><b>Fix legibility &amp; focus on route change (AX-01, AX-02).</b> Low effort, broad reach.</span></li>
+      <li><span><b>Swap in real content, then meta/SEO (C-01, S-01).</b> The launch checklist.</span></li>
+    </ol>
+  </section>
+
+  <footer>
+    <span><span class="dot"></span>Dev Cell Club — Codebase Audit</span>
+    <span>16 findings · 6 areas · No runtime errors</span>
+  </footer>
+
+</div>
+</body>
+</html>

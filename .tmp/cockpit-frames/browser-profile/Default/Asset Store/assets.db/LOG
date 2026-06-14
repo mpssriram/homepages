@@ -1,0 +1,5 @@
+2026/06/04-23:28:16.447 4b9c Creating DB C:\python_practice\homepage\.tmp\cockpit-frames\browser-profile\Default\Asset Store\assets.db since it was missing.
+2026/06/04-23:28:16.481 4b9c Reusing MANIFEST C:\python_practice\homepage\.tmp\cockpit-frames\browser-profile\Default\Asset Store\assets.db/MANIFEST-000001
+2026/06/04-23:28:16.850 62c4 Level-0 table #5: started
+2026/06/04-23:28:16.859 62c4 Level-0 table #5: 332814 bytes OK
+2026/06/04-23:28:16.862 62c4 Delete type=0 #3

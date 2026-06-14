@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dev Cell — Page Backgrounds v3 (Cockpit Themed)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===========================================================
+     Cockpit-themed page backgrounds — matches Dev Cell's existing
+     terminal/HUD visual language: grid, scan sweeps, coordinate
+     marks, signal beacons, frame brackets. Per-page accent.
+     =========================================================== */
+  :root {
+    --bg-floor: #010204;
+    --bg: #020508;
+    --bg-soft: #03070e;
+    --text: #f5fbff;
+    --text-dim: rgba(226,243,250,0.74);
+    --text-muted: rgba(194,240,255,0.5);
+
+    --accent: #ff3b6b;
+    --accent-rgb: 255,59,107;
+    --accent-soft: rgba(255,59,107,0.14);
+    --accent-line: rgba(255,59,107,0.22);
+    --accent-glow: rgba(255,99,124,0.55);
+
+    --grid-line: rgba(139,234,255,0.045);
+    --hud-line: rgba(139,234,255,0.22);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #000; color: var(--text); font-family: 'Space Grotesk', system-ui, sans-serif; }
+  body { min-height: 100vh; overflow-x: hidden; }
+
+  /* ===== SWITCHER ===== */
+  .switcher {
+    position: fixed; top: 1.2rem; left: 50%; transform: translateX(-50%);
+    z-index: 30;
+    display: flex; gap: 0.25rem;
+    padding: 0.35rem;
+    border: 1px solid rgba(139,234,255,0.18);
+    background: rgba(5,11,16,0.82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 999px;
+  }
+  .switcher button {
+    appearance: none; background: transparent; color: var(--text-dim);
+    border: 0; padding: 0.55rem 1.05rem;
+    font: 600 0.62rem/1 'Space Grotesk', sans-serif;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 180ms ease, background 180ms ease;
+  }
+  .switcher button:hover { color: var(--text); }
+  .switcher button[aria-pressed="true"] { color: #020617; background: var(--accent); }
+  .switcher .label {
+    padding: 0.55rem 0.75rem 0.55rem 0.95rem;
+    color: var(--text-muted);
+    font: 500 0.56rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    border-right: 1px solid rgba(139,234,255,0.12);
+    margin-right: 0.25rem;
+    align-self: center;
+  }
+
+  /* ===== BG STACK ===== */
+  .bg-stack { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+
+  /* Always-on shared layers */
+  .bg-base {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 55%, var(--bg-floor) 100%);
+  }
+  .bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(ellipse at 50% 42%, transparent 0%, rgba(0,0,0,0.2) 30%, rgba(0,0,0,0.7) 70%, transparent 100%);
+  }
+  .bg-vignette {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 42%, transparent 0%, rgba(2,4,8,0.45) 55%, rgba(0,0,0,0.85) 100%),
+      linear-gradient(180deg, rgba(1,2,5,0.35) 0%, transparent 18%, transparent 75%, rgba(1,2,5,0.85) 100%);
+  }
+  .bg-grain {
+    position: absolute; inset: 0;
+    opacity: 0.025;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+    background-size: 180px;
+  }
+
+  /* Variant layers */
+  .bg-layer { position: absolute; inset: 0; opacity: 0; transition: opacity 380ms ease; }
+  body[data-variant="community"] .bg-layer.community,
+  body[data-variant="team"] .bg-layer.team,
+  body[data-variant="events"] .bg-layer.events,
+  body[data-variant="projects"] .bg-layer.projects { opacity: 1; }
+
+  /* ===== Horizontal scan sweep (shared, recolored per variant) ===== */
+  .scan {
+    position: absolute; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--accent-glow) 50%, transparent 100%);
+    filter: blur(1px);
+    opacity: 0.55;
+    animation: scan-move 14s linear infinite;
+  }
+  @keyframes scan-move {
+    0% { top: -10%; }
+    100% { top: 110%; }
+  }
+
+  /* ===== HUD corner brackets ===== */
+  .hud-corner {
+    position: absolute;
+    width: 4rem; height: 4rem;
+    border: 1px solid var(--hud-line);
+    opacity: 0.65;
+  }
+  .hud-corner.tl { top: 4.8rem; left: 1rem; border-right: 0; border-bottom: 0; }
+  .hud-corner.tr { top: 4.8rem; right: 1rem; border-left: 0; border-bottom: 0; }
+  .hud-corner.bl { bottom: 1rem; left: 1rem; border-right: 0; border-top: 0; }
+  .hud-corner.br { bottom: 1rem; right: 1rem; border-left: 0; border-top: 0; }
+
+  /* ===== Coordinate marks ===== */
+  .coords {
+    position: absolute;
+    color: var(--text-muted);
+    font: 500 0.5rem/1.2 'JetBrains Mono', monospace;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    opacity: 0.55;
+  }
+  .coords.tl { top: 4.6rem; left: 1.4rem; }
+  .coords.tr { top: 4.6rem; right: 1.4rem; text-align: right; }
+  .coords.bl { bottom: 1.2rem; left: 1.4rem; }
+  .coords.br { bottom: 1.2rem; right: 1.4rem; text-align: right; }
+  .coords > span { display: block; }
+
+  /* ===========================================================
+     COMMUNITY — "SIGNAL CLUSTER"
+     Faint node beacons with pulsing rings, linked by short hairlines.
+     =========================================================== */
+  .signal-clusters .node {
+    position: absolute;
+    width: 0.5rem; height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0.8rem var(--accent-glow);
+    transform: translate(-50%, -50%);
+  }
+  .signal-clusters .node::before,
+  .signal-clusters .node::after {
+    content: ""; position: absolute; inset: -0.5rem;
+    border: 1px solid var(--accent-glow);
+    border-radius: 50%;
+    opacity: 0;
+    animation: pulse-ring 4s ease-out infinite;
+  }
+  .signal-clusters .node::after { animation-delay: 2s; }
+  @keyframes pulse-ring {
+    0%   { transform: scale(0.6); opacity: 0.85; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+  .signal-clusters .satellite {
+    position: absolute;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: rgba(139,234,255,0.65);
+    box-shadow: 0 0 0.4rem rgba(139,234,255,0.45);
+    transform: translate(-50%, -50%);
+  }
+  .signal-clusters .link {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent-glow), rgba(139,234,255,0.3));
+    transform-origin: left center;
+    opacity: 0.35;
+  }
+
+  /* ===========================================================
+     TEAM — "CREW CONSOLE"
+     Slow drifting grid + cursor reticule + horizontal scan + edge HUD.
+     =========================================================== */
+  .crew-console .reticule {
+    position: absolute;
+    width: 0; height: 0;
+    transform: translate(-50%, -50%);
+    transition: transform 100ms linear;
+  }
+  .crew-console .reticule::before,
+  .crew-console .reticule::after {
+    content: ""; position: absolute;
+    background: rgba(139,234,255,0.32);
+  }
+  .crew-console .reticule::before {
+    width: 2rem; height: 1px;
+    left: -1rem; top: -0.5px;
+    box-shadow: 0 0 0.6rem rgba(139,234,255,0.4);
+  }
+  .crew-console .reticule::after {
+    height: 2rem; width: 1px;
+    top: -1rem; left: -0.5px;
+    box-shadow: 0 0 0.6rem rgba(139,234,255,0.4);
+  }
+  .crew-console .ret-ring {
+    position: absolute;
+    width: 3rem; height: 3rem;
+    border: 1px solid rgba(139,234,255,0.18);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 200ms linear;
+  }
+  .crew-console .glow {
+    position: absolute;
+    width: 36rem; height: 36rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,234,255,0.06), transparent 65%);
+    transform: translate(-50%, -50%);
+    transition: transform 220ms linear;
+    mix-blend-mode: screen;
+  }
+  .crew-console .drift-grid {
+    position: absolute; inset: -10%;
+    background-image:
+      linear-gradient(rgba(139,234,255,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,234,255,0.05) 1px, transparent 1px);
+    background-size: 96px 96px;
+    mask-image: radial-gradient(ellipse at 50% 40%, transparent 0%, rgba(0,0,0,0.18) 30%, rgba(0,0,0,0.85) 75%);
+    animation: drift 60s linear infinite;
+  }
+  @keyframes drift {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-96px, -96px); }
+  }
+  /* small data ticks at the edge */
+  .crew-console .data-strip {
+    position: absolute;
+    left: 1.4rem; top: 38%; bottom: 18%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent 0%, rgba(139,234,255,0.4) 30%, rgba(139,234,255,0.4) 70%, transparent 100%);
+  }
+  .crew-console .data-strip::before, .crew-console .data-strip::after {
+    content: ""; position: absolute;
+    left: 0; width: 0.6rem; height: 1px;
+    background: rgba(139,234,255,0.5);
+  }
+  .crew-console .data-strip::before { top: 25%; }
+  .crew-console .data-strip::after { top: 60%; }
+
+  /* ===========================================================
+     EVENTS — "TIME STREAM"
+     Vertical columns with sequential glow pulses, day markers.
+     =========================================================== */
+  .time-stream .col {
+    position: absolute; top: 8%; bottom: 14%;
+    width: 1px;
+    background: linear-gradient(180deg, transparent 0%, rgba(124,108,255,0.18) 35%, rgba(124,108,255,0.18) 65%, transparent 100%);
+  }
+  .time-stream .col::after {
+    content: ""; position: absolute;
+    left: -1.5px; top: 0; width: 4px; height: 30%;
+    background: linear-gradient(180deg, var(--accent-glow), transparent);
+    filter: blur(2px);
+    opacity: 0.85;
+    animation: pulse-down 6s ease-in-out infinite;
+  }
+  @keyframes pulse-down {
+    0%   { transform: translateY(0); opacity: 0; }
+    20%  { opacity: 1; }
+    100% { transform: translateY(280%); opacity: 0; }
+  }
+  .time-stream .now-line {
+    position: absolute; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(165,148,255,0.45) 30%, rgba(165,148,255,0.45) 70%, transparent);
+    box-shadow: 0 0 1.2rem rgba(165,148,255,0.35);
+    animation: now-drift 18s ease-in-out infinite alternate;
+  }
+  @keyframes now-drift {
+    0% { top: 38%; }
+    100% { top: 62%; }
+  }
+  .time-stream .day-marks {
+    position: absolute; left: 0; right: 0; bottom: 8%;
+    display: flex; justify-content: space-around;
+    color: rgba(165,148,255,0.4);
+    font: 500 0.55rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    padding: 0 8%;
+  }
+
+  /* ===========================================================
+     PROJECTS — "SCHEMATIC LAB"
+     Perspective grid + highlighted junction marks + faint orbit.
+     =========================================================== */
+  .schematic .persp-grid {
+    position: absolute; left: -10%; right: -10%; top: 30%; bottom: 0;
+    background-image:
+      linear-gradient(rgba(240,107,255,0.085) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(240,107,255,0.07) 1px, transparent 1px);
+    background-size: 96px 96px;
+    transform: perspective(800px) rotateX(58deg);
+    transform-origin: 50% 0;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.9), transparent 80%);
+    animation: schematic-drift 40s linear infinite;
+  }
+  @keyframes schematic-drift {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 96px; }
+  }
+  .schematic .junction {
+    position: absolute;
+    width: 6px; height: 6px;
+    border: 1px solid rgba(240,107,255,0.7);
+    background: rgba(240,107,255,0.15);
+    transform: rotate(45deg) translate(-50%, -50%);
+    transform-origin: 0 0;
+    box-shadow: 0 0 0.8rem rgba(240,107,255,0.4);
+    opacity: 0.85;
+  }
+  .schematic .axis {
+    position: absolute;
+    background: rgba(240,107,255,0.16);
+  }
+  .schematic .axis.h { left: 0; right: 0; height: 1px; }
+  .schematic .axis.v { top: 0; bottom: 0; width: 1px; }
+  .schematic .top-vignette {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 25%, rgba(240,107,255,0.08) 0%, transparent 45%);
+  }
+  .schematic .blueprint-strip {
+    position: absolute; left: 6%; right: 6%; top: 22%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(240,107,255,0.25) 20%, rgba(240,107,255,0.25) 80%, transparent);
+    opacity: 0.7;
+  }
+  .schematic .blueprint-strip::before,
+  .schematic .blueprint-strip::after {
+    content: ""; position: absolute; top: -3px;
+    width: 1px; height: 7px;
+    background: rgba(240,107,255,0.5);
+  }
+  .schematic .blueprint-strip::before { left: 18%; }
+  .schematic .blueprint-strip::after  { right: 18%; }
+
+  /* ===== NAV / CONTENT ===== */
+  .navrail {
+    position: absolute; top: 1.2rem; left: 1.5rem; right: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 5;
+    color: var(--text-muted);
+    font: 500 0.58rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em; text-transform: uppercase;
+  }
+  .navrail .brand { color: var(--text); font: 700 0.72rem/1 'JetBrains Mono', monospace; letter-spacing: 0.24em; }
+  .navrail .links { display: flex; gap: 1.4rem; }
+  .navrail .links a { color: inherit; text-decoration: none; transition: color 180ms; }
+  .navrail .links a:hover { color: var(--text); }
+
+  .stage { position: relative; min-height: 100vh; isolation: isolate; }
+  .stage-content { position: relative; z-index: 2; padding: 6.5rem 1.5rem 4rem; }
+
+  .hero { max-width: 78rem; margin: 0 auto; position: relative; }
+  .hero-frame {
+    position: relative;
+    padding: 4rem 2rem 3rem;
+    border: 1px solid var(--accent-line);
+    background: rgba(5,11,16,0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .hero-frame::before, .hero-frame::after {
+    content: ""; position: absolute; top: -1px;
+    width: 6rem; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 1.25rem var(--accent-glow);
+  }
+  .hero-frame::before { left: 2rem; }
+  .hero-frame::after { right: 2rem; }
+
+  .eyebrow { color: var(--text-muted); font: 500 0.62rem/1 'JetBrains Mono', monospace; letter-spacing: 0.22em; text-transform: uppercase; margin: 0; }
+  .hero h1 {
+    margin: 1.2rem 0 0;
+    font: 400 clamp(3.5rem, 9vw, 7rem)/0.86 'Anton', sans-serif;
+    letter-spacing: -0.025em; text-transform: uppercase;
+    color: #f8fcff;
+    max-width: 24ch;
+    text-shadow: 0 0 1.5rem rgba(0,0,0,0.4);
+  }
+  .hero h1 span { display: block; }
+  .hero p.lede { margin: 1.5rem 0 0; max-width: 42rem; color: var(--text-dim); font-size: 1.02rem; line-height: 1.78; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 0.95rem 1.3rem;
+    border: 1px solid var(--accent-line);
+    background: linear-gradient(180deg, var(--accent-soft), rgba(255,255,255,0.02));
+    color: #f5fbff;
+    font: 600 0.66rem/1 'Space Grotesk', sans-serif;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; text-decoration: none;
+    transition: background 180ms, border-color 180ms, color 180ms;
+  }
+  .btn:hover { background: var(--accent); color: #07090c; border-color: var(--accent); }
+  .btn.ghost { background: transparent; border-color: rgba(255,255,255,0.18); color: var(--text-dim); }
+  .btn.ghost:hover { background: rgba(255,255,255,0.06); color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+  .card-row {
+    max-width: 78rem; margin: 4.5rem auto 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+    position: relative; z-index: 2;
+  }
+  .card {
+    padding: 1.3rem;
+    border: 1px solid var(--accent-line);
+    background: rgba(5,11,16,0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-height: 10rem;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .card .num { color: var(--accent); font: 700 0.62rem/1 'JetBrains Mono', monospace; letter-spacing: 0.22em; }
+  .card h3 { margin: 2rem 0 0.4rem; font: 700 1.4rem/1 'Anton', sans-serif; letter-spacing: -0.02em; color: var(--text); text-transform: uppercase; }
+  .card p { margin: 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.65; }
+
+  /* per-variant accents (match real project) */
+  body[data-variant="community"] { --accent: #ff3b6b; --accent-rgb: 255,59,107; --accent-soft: rgba(255,59,107,0.14); --accent-line: rgba(255,59,107,0.26); --accent-glow: rgba(255,99,124,0.6); }
+  body[data-variant="team"] { --accent: #8beaff; --accent-rgb: 139,234,255; --accent-soft: rgba(139,234,255,0.12); --accent-line: rgba(139,234,255,0.26); --accent-glow: rgba(139,234,255,0.6); }
+  body[data-variant="events"] { --accent: #a594ff; --accent-rgb: 165,148,255; --accent-soft: rgba(124,108,255,0.16); --accent-line: rgba(124,108,255,0.3); --accent-glow: rgba(165,148,255,0.6); }
+  body[data-variant="projects"] { --accent: #f06bff; --accent-rgb: 240,107,255; --accent-soft: rgba(240,107,255,0.14); --accent-line: rgba(240,107,255,0.26); --accent-glow: rgba(240,107,255,0.55); }
+
+  .var-content { display: none; }
+  body[data-variant="community"] .var-content.community,
+  body[data-variant="team"] .var-content.team,
+  body[data-variant="events"] .var-content.events,
+  body[data-variant="projects"] .var-content.projects { display: block; }
+
+  .caption {
+    position: fixed; bottom: 1rem; left: 1.2rem;
+    z-index: 30;
+    padding: 0.65rem 0.95rem;
+    background: rgba(5,11,16,0.82);
+    border: 1px solid rgba(139,234,255,0.16);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--text-muted);
+    font: 500 0.55rem/1.55 'JetBrains Mono', monospace;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    max-width: 26rem;
+  }
+  .caption b { color: var(--text); display: block; margin-bottom: 0.2rem; letter-spacing: 0.2em; }
+
+  @media (max-width: 720px) {
+    .switcher .label { display: none; }
+    .switcher button { padding: 0.5rem 0.7rem; font-size: 0.54rem; }
+    .caption { left: 50%; transform: translateX(-50%); max-width: 90vw; }
+    .hud-corner { width: 2.5rem; height: 2.5rem; }
+    .coords { font-size: 0.46rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scan, .drift-grid, .signal-clusters .node::before, .signal-clusters .node::after,
+    .time-stream .col::after, .time-stream .now-line, .schematic .persp-grid {
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body data-variant="community">
+
+  <nav class="switcher" aria-label="Backgrounds">
+    <span class="label">Page · BG</span>
+    <button data-variant="community" aria-pressed="true">Community</button>
+    <button data-variant="team" aria-pressed="false">Team</button>
+    <button data-variant="events" aria-pressed="false">Events</button>
+    <button data-variant="projects" aria-pressed="false">Projects</button>
+  </nav>
+
+  <div class="bg-stack" aria-hidden="true">
+    <div class="bg-base"></div>
+    <div class="bg-grid"></div>
+
+    <!-- COMMUNITY: signal cluster -->
+    <div class="bg-layer community signal-clusters">
+      <!-- 5 cluster nodes positioned around the viewport -->
+      <div class="link" style="left:14%; top:32%; width:9%; transform: translate(0,0) rotate(18deg);"></div>
+      <div class="link" style="left:22%; top:40%; width:7%; transform: translate(0,0) rotate(-22deg);"></div>
+      <div class="link" style="left:60%; top:28%; width:11%; transform: translate(0,0) rotate(8deg);"></div>
+      <div class="link" style="left:68%; top:60%; width:8%; transform: translate(0,0) rotate(-32deg);"></div>
+
+      <div class="node" style="left:14%; top:32%;"></div>
+      <div class="node" style="left:60%; top:28%; animation-delay: 1.5s;"></div>
+      <div class="node" style="left:82%; top:48%; animation-delay: 2.8s;"></div>
+      <div class="node" style="left:28%; top:78%;"></div>
+      <div class="node" style="left:68%; top:60%; animation-delay: 0.7s;"></div>
+
+      <div class="satellite" style="left:23%; top:40%;"></div>
+      <div class="satellite" style="left:31%; top:35%;"></div>
+      <div class="satellite" style="left:71%; top:32%;"></div>
+      <div class="satellite" style="left:76%; top:55%;"></div>
+      <div class="satellite" style="left:50%; top:48%;"></div>
+      <div class="satellite" style="left:42%; top:70%;"></div>
+      <div class="satellite" style="left:64%; top:78%;"></div>
+
+      <div class="scan"></div>
+    </div>
+
+    <!-- TEAM: crew console -->
+    <div class="bg-layer team crew-console">
+      <div class="drift-grid"></div>
+      <div class="glow" id="crewGlow" style="left:50%; top:42%;"></div>
+      <div class="ret-ring" id="crewRing" style="left:50%; top:42%;"></div>
+      <div class="reticule" id="crewReticule" style="left:50%; top:42%;"></div>
+      <div class="data-strip"></div>
+      <div class="scan"></div>
+    </div>
+
+    <!-- EVENTS: time stream -->
+    <div class="bg-layer events time-stream">
+      <div class="col" style="left:12%;"></div>
+      <div class="col" style="left:22%;"></div>
+      <div class="col" style="left:32%;"></div>
+      <div class="col" style="left:42%; --d:0.4s;"></div>
+      <div class="col" style="left:52%;"></div>
+      <div class="col" style="left:62%;"></div>
+      <div class="col" style="left:72%;"></div>
+      <div class="col" style="left:82%;"></div>
+      <div class="now-line"></div>
+      <div class="day-marks">
+        <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+      </div>
+    </div>
+
+    <!-- PROJECTS: schematic lab -->
+    <div class="bg-layer projects schematic">
+      <div class="persp-grid"></div>
+      <div class="top-vignette"></div>
+      <div class="axis h" style="top:46%;"></div>
+      <div class="blueprint-strip"></div>
+      <div class="junction" style="left:22%; top:46%;"></div>
+      <div class="junction" style="left:38%; top:46%;"></div>
+      <div class="junction" style="left:60%; top:46%;"></div>
+      <div class="junction" style="left:78%; top:46%;"></div>
+    </div>
+
+    <!-- Shared HUD elements -->
+    <div class="hud-corner tl"></div>
+    <div class="hud-corner tr"></div>
+    <div class="hud-corner bl"></div>
+    <div class="hud-corner br"></div>
+
+    <div class="coords tl">
+      <span>IIT MANDI · KAMAND</span>
+      <span>NODE · ACTIVE</span>
+    </div>
+    <div class="coords tr">
+      <span id="coords-time">T · 06:42</span>
+      <span>SIGNAL · OK</span>
+    </div>
+    <div class="coords bl">
+      <span>31.78° N</span>
+      <span>76.99° E</span>
+    </div>
+    <div class="coords br">
+      <span id="coords-variant">VAR · COMMUNITY</span>
+      <span>FRAME · 01</span>
+    </div>
+
+    <div class="bg-vignette"></div>
+    <div class="bg-grain"></div>
+  </div>
+
+  <div class="stage">
+    <div class="navrail">
+      <span class="brand">DEV / CELL · CLUB</span>
+      <div class="links"><a>Community</a><a>Team</a><a>Events</a><a>Projects</a></div>
+    </div>
+
+    <main class="stage-content">
+
+      <div class="var-content community">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Community Channel / Dev Cell</p>
+            <h1><span>A home for</span><span>student</span><span>builders.</span></h1>
+            <p class="lede">Join the student developer community where you can learn with others, ask for help, build real projects, and ship work you are proud to show.</p>
+            <div class="actions"><a class="btn">Join Community</a><a class="btn ghost">Meet Core Crew</a></div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">01 · Path</span><h3>Learn</h3><p>Web basics, Git, APIs, deployment, modern tools through hands-on sessions.</p></div>
+          <div class="card"><span class="num">02 · Make</span><h3>Build</h3><p>Join small teams working on websites, dashboards, club tools, and campus ideas.</p></div>
+          <div class="card"><span class="num">03 · Help</span><h3>Get Help</h3><p>Ask doubts, review code, debug with seniors. No pretending.</p></div>
+          <div class="card"><span class="num">04 · Live</span><h3>Ship</h3><p>Turn practice into live demos, GitHub links, hackathon builds, portfolio work.</p></div>
+        </section>
+      </div>
+
+      <div class="var-content team">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Dev Cell · Team</p>
+            <h1>Meet the<br>students building<br>Dev Cell.</h1>
+            <p class="lede">We run sessions, ship projects, organize events, review ideas, and help new members find their first real build.</p>
+            <div class="actions"><a class="btn">Join the Team</a><a class="btn ghost">Enter Community</a></div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">Lead</span><h3>Coordinator</h3><p>Keeps the club rhythm clear, welcomes new members, ties projects to events.</p></div>
+          <div class="card"><span class="num">Lead</span><h3>Technical</h3><p>Code reviews, architecture choices, debugging help, cleaner projects.</p></div>
+          <div class="card"><span class="num">Lead</span><h3>Design</h3><p>UI direction, posters, event pages, the polish details.</p></div>
+          <div class="card"><span class="num">Crew</span><h3>Events</h3><p>Workshops, build nights, speaker sessions, hackathon logistics.</p></div>
+        </section>
+      </div>
+
+      <div class="var-content events">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Dev Cell · Events</p>
+            <h1>Show up,<br>build, leave with<br>progress.</h1>
+            <p class="lede">Workshops, open labs, build nights, and team sessions for students who want to learn by making things.</p>
+            <div class="actions"><a class="btn">See Upcoming Events</a><a class="btn ghost">Reserve a Seat</a></div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">FRI · 6PM</span><h3>Open Lab</h3><p>Bring a project, a bug, or just curiosity. Work with builders.</p></div>
+          <div class="card"><span class="num">SAT · 11AM</span><h3>Git Starter</h3><p>Version control, pull requests, collaboration basics.</p></div>
+          <div class="card"><span class="num">TUE · 7PM</span><h3>React Build</h3><p>Layouts, states, interfaces alongside the frontend crew.</p></div>
+          <div class="card"><span class="num">THU · 5:30</span><h3>Hack Meet</h3><p>Find teammates, shape ideas, get feedback before sprints.</p></div>
+        </section>
+      </div>
+
+      <div class="var-content projects">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Dev Cell · Projects</p>
+            <h1>Build real<br>things with<br>the crew.</h1>
+            <p class="lede">Join practical student projects, take a small task, get feedback, and ship work that the club can actually use.</p>
+            <div class="actions"><a class="btn">See Open Builds</a><a class="btn ghost">Join a Lane</a></div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">Active</span><h3>Club Platform</h3><p>The shared home for Dev Cell: community, events, projects.</p></div>
+          <div class="card"><span class="num">Proto</span><h3>Event Board</h3><p>Cleaner way to show upcoming sessions and updates.</p></div>
+          <div class="card"><span class="num">Weekly</span><h3>Onboarding</h3><p>Simple flow for welcoming members and sharing first tasks.</p></div>
+          <div class="card"><span class="num">Ongoing</span><h3>Starter Kits</h3><p>Small repos, setup notes, templates for new contributors.</p></div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="caption" id="caption"></div>
+
+<script>
+  const CAPTIONS = {
+    community: { title: 'Signal Cluster', body: 'Beacon nodes + satellites linked by hairlines. Pulses every 4s. Matches site cockpit grammar.' },
+    team: { title: 'Crew Console', body: 'Drifting HUD grid + cursor reticule with crosshair + scan sweep. Mission-control feel.' },
+    events: { title: 'Time Stream', body: 'Vertical time columns with sequential glow pulses + drifting "NOW" line + day markers.' },
+    projects: { title: 'Schematic Lab', body: 'Perspective grid with highlighted junctions on the axis. CAD-viewport feel.' },
+  };
+  const captionEl = document.getElementById('caption');
+  const coordsVarEl = document.getElementById('coords-variant');
+  const buttons = document.querySelectorAll('.switcher button');
+  function setVariant(v) {
+    document.body.dataset.variant = v;
+    buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.variant === v)));
+    const c = CAPTIONS[v];
+    captionEl.innerHTML = `<b>${c.title}</b>${c.body}`;
+    coordsVarEl.textContent = `VAR · ${v.toUpperCase()}`;
+  }
+  buttons.forEach(b => b.addEventListener('click', () => setVariant(b.dataset.variant)));
+
+  // Crew Console cursor reticule + glow follow
+  const ret = document.getElementById('crewReticule');
+  const ring = document.getElementById('crewRing');
+  const glow = document.getElementById('crewGlow');
+  window.addEventListener('pointermove', (e) => {
+    if (document.body.dataset.variant !== 'team') return;
+    const x = e.clientX, y = e.clientY;
+    ret.style.left = x + 'px'; ret.style.top = y + 'px';
+    ring.style.left = x + 'px'; ring.style.top = y + 'px';
+    glow.style.left = x + 'px'; glow.style.top = y + 'px';
+  });
+
+  // sequenced pulse delays for time stream
+  document.querySelectorAll('.time-stream .col').forEach((col, i) => {
+    const after = col.querySelector ? null : null;
+    col.style.setProperty('--d', i * 0.55 + 's');
+  });
+  // inject animation-delay via inline style on ::after isn't possible; use class-based
+  const styleSeq = document.createElement('style');
+  let css = '';
+  const COLS = document.querySelectorAll('.time-stream .col');
+  COLS.forEach((c, i) => {
+    c.classList.add('c' + i);
+    css += `.time-stream .col.c${i}::after { animation-delay: ${(i * 0.55).toFixed(2)}s; }`;
+  });
+  styleSeq.textContent = css;
+  document.head.appendChild(styleSeq);
+
+  // tiny ticking clock for HUD
+  const timeEl = document.getElementById('coords-time');
+  function tick() {
+    const d = new Date();
+    timeEl.textContent = 'T · ' + d.toTimeString().slice(0,5);
+  }
+  tick();
+  setInterval(tick, 30000);
+
+  setVariant('community');
+</script>
+</body>
+</html>

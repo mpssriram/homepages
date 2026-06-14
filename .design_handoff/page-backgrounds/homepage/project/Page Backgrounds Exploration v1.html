@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dev Cell — Page Backgrounds Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-floor: #010204;
+    --bg: #020407;
+    --bg-soft: #03060c;
+    --text: #f5fbff;
+    --text-dim: rgba(226,243,250,0.74);
+    --text-muted: rgba(194,240,255,0.5);
+
+    /* per-variant accents */
+    --accent: #ff3b6b;       /* community */
+    --accent-soft: rgba(255,59,107,0.18);
+    --accent-line: rgba(255,59,107,0.22);
+    --accent-glow: rgba(255,99,124,0.45);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Space Grotesk', system-ui, sans-serif; }
+  body { min-height: 100vh; overflow-x: hidden; }
+
+  /* ===== TAB SWITCHER ===== */
+  .switcher {
+    position: fixed; top: 1.2rem; left: 50%; transform: translateX(-50%);
+    z-index: 30;
+    display: flex; gap: 0.25rem;
+    padding: 0.35rem;
+    border: 1px solid rgba(139,234,255,0.18);
+    background: rgba(5,11,16,0.7);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 999px;
+    box-shadow: 0 1rem 2rem rgba(0,0,0,0.4);
+  }
+  .switcher button {
+    appearance: none; background: transparent; color: var(--text-dim);
+    border: 0; padding: 0.55rem 1.05rem;
+    font: 600 0.62rem/1 'Space Grotesk', sans-serif;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 180ms ease, background 180ms ease;
+  }
+  .switcher button:hover { color: var(--text); }
+  .switcher button[aria-pressed="true"] {
+    color: #020617;
+    background: var(--accent);
+  }
+  .switcher .label {
+    padding: 0.55rem 0.75rem 0.55rem 0.95rem;
+    color: var(--text-muted);
+    font: 500 0.56rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    border-right: 1px solid rgba(139,234,255,0.12);
+    margin-right: 0.25rem;
+    align-self: center;
+  }
+
+  /* ===== STAGE ===== */
+  .stage {
+    position: relative;
+    min-height: 100vh;
+    isolation: isolate;
+  }
+
+  /* shared background layers stack */
+  .bg-stack {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .bg-base {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 55%, var(--bg-floor) 100%);
+  }
+  .bg-grain {
+    position: absolute; inset: 0;
+    opacity: 0.028;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+  }
+  .bg-vignette {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 38%, transparent 0, transparent 52%, rgba(0,0,0,0.4) 100%),
+      linear-gradient(180deg, rgba(1,2,5,0.32) 0%, transparent 18%, transparent 76%, rgba(1,2,5,0.78) 100%);
+  }
+
+  /* per-variant layers hidden by default */
+  .bg-layer { position: absolute; inset: 0; opacity: 0; transition: opacity 380ms ease; }
+  body[data-variant="community"] .bg-layer.community,
+  body[data-variant="team"] .bg-layer.team,
+  body[data-variant="events"] .bg-layer.events,
+  body[data-variant="projects"] .bg-layer.projects { opacity: 1; }
+
+  /* ===== COMMUNITY — AURORA SILK MESH ===== */
+  .bg-aurora {
+    --c1: #ff3b6b;
+    --c2: #ff8a5b;
+    --c3: #8beaff;
+    --c4: #b46bff;
+    filter: blur(60px) saturate(1.15);
+  }
+  .bg-aurora .blob {
+    position: absolute;
+    width: 60vmax; height: 60vmax;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    will-change: transform;
+    opacity: 0.55;
+  }
+  .bg-aurora .blob.b1 { background: radial-gradient(circle, var(--c1) 0%, transparent 60%); top: -20vmax; left: -15vmax; animation: aurora-drift-1 24s ease-in-out infinite; }
+  .bg-aurora .blob.b2 { background: radial-gradient(circle, var(--c2) 0%, transparent 60%); top: 10vmax; right: -20vmax; animation: aurora-drift-2 30s ease-in-out infinite; opacity: 0.4; }
+  .bg-aurora .blob.b3 { background: radial-gradient(circle, var(--c3) 0%, transparent 55%); bottom: -25vmax; left: 20vmax; animation: aurora-drift-3 36s ease-in-out infinite; opacity: 0.32; }
+  .bg-aurora .blob.b4 { background: radial-gradient(circle, var(--c4) 0%, transparent 55%); bottom: -10vmax; right: 10vmax; animation: aurora-drift-4 28s ease-in-out infinite; opacity: 0.3; }
+  @keyframes aurora-drift-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(10vmax, 8vmax) scale(1.1); }
+  }
+  @keyframes aurora-drift-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-12vmax, 14vmax) scale(0.9); }
+  }
+  @keyframes aurora-drift-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(8vmax, -10vmax) scale(1.08); }
+  }
+  @keyframes aurora-drift-4 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-14vmax, -6vmax) scale(0.94); }
+  }
+  /* horizontal scan line */
+  .bg-aurora-scan {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, transparent 0%, rgba(255,99,124,0.18) 50%, transparent 100%);
+    background-size: 100% 2px;
+    background-repeat: no-repeat;
+    background-position: 0 40%;
+    animation: scan-move 9s linear infinite;
+    mix-blend-mode: screen;
+    opacity: 0.7;
+  }
+  @keyframes scan-move {
+    0% { background-position: 0 -10%; }
+    100% { background-position: 0 110%; }
+  }
+  /* faint grid */
+  .bg-aurora-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,99,124,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,99,124,0.04) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.18) 30%, rgba(0,0,0,0.72) 64%, transparent 100%);
+    opacity: 0.6;
+  }
+
+  /* ===== TEAM — CONSTELLATION ===== */
+  .bg-constellation canvas { width: 100%; height: 100%; display: block; }
+  .bg-constellation-vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, transparent 0%, rgba(2,6,12,0.55) 70%);
+    pointer-events: none;
+  }
+
+  /* ===== EVENTS — STAGE BEAMS + MARQUEE ===== */
+  .bg-beams {
+    overflow: hidden;
+  }
+  .bg-beams .beam {
+    position: absolute;
+    top: -10vh; bottom: -10vh;
+    width: 18vw;
+    background: linear-gradient(180deg, transparent 0%, rgba(124,108,255,0.32) 40%, rgba(124,108,255,0.45) 55%, transparent 100%);
+    filter: blur(28px);
+    mix-blend-mode: screen;
+    transform-origin: top center;
+    will-change: transform, opacity;
+  }
+  .bg-beams .beam.b1 { left: 8%;  transform: rotate(-8deg); animation: beam-pulse 6s ease-in-out infinite; }
+  .bg-beams .beam.b2 { left: 30%; transform: rotate(4deg);  animation: beam-pulse 8s ease-in-out infinite 1.4s; opacity: 0.75; }
+  .bg-beams .beam.b3 { left: 52%; transform: rotate(-3deg); animation: beam-pulse 7s ease-in-out infinite 0.6s; opacity: 0.85; }
+  .bg-beams .beam.b4 { left: 72%; transform: rotate(6deg);  animation: beam-pulse 9s ease-in-out infinite 2.2s; }
+  .bg-beams .beam.alt {
+    background: linear-gradient(180deg, transparent 0%, rgba(34,211,238,0.22) 50%, transparent 100%);
+  }
+  @keyframes beam-pulse {
+    0%, 100% { opacity: 0.5; transform-origin: top center; }
+    50% { opacity: 0.95; }
+  }
+  /* horizontal scrolling marquee */
+  .bg-beams-marquee {
+    position: absolute;
+    top: 60%;
+    left: 0; right: 0;
+    height: 4rem;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent 0%, black 20%, black 80%, transparent 100%);
+  }
+  .bg-beams-marquee .track {
+    display: flex; gap: 4rem;
+    white-space: nowrap;
+    font: 700 4.5rem/1 'Anton', 'Space Grotesk', sans-serif;
+    letter-spacing: -0.03em;
+    color: rgba(124,108,255,0.18);
+    text-transform: uppercase;
+    animation: marquee 38s linear infinite;
+    will-change: transform;
+  }
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .bg-beams-marquee.row2 { top: auto; bottom: 18%; }
+  .bg-beams-marquee.row2 .track { animation-duration: 52s; animation-direction: reverse; color: rgba(34,211,238,0.1); font-size: 3.2rem; }
+  /* floor glow */
+  .bg-beams-floor {
+    position: absolute; left: 0; right: 0; bottom: -10vh; height: 50vh;
+    background: radial-gradient(ellipse at 50% 100%, rgba(124,108,255,0.32) 0%, transparent 60%);
+    mix-blend-mode: screen;
+  }
+  /* perforated grid like stage trusses */
+  .bg-beams-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(124,108,255,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,108,255,0.05) 1px, transparent 1px);
+    background-size: 96px 96px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 60%);
+    opacity: 0.7;
+  }
+
+  /* ===== PROJECTS — IRIDESCENT DOT GRID + CURSOR REVEAL ===== */
+  .bg-iridescent canvas { width: 100%; height: 100%; display: block; }
+  .bg-iridescent-shimmer {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(240,107,255,0.12) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(34,211,238,0.08) 0%, transparent 40%);
+    mix-blend-mode: screen;
+    animation: iridescent-shift 14s ease-in-out infinite;
+  }
+  @keyframes iridescent-shift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-2%, -3%); }
+  }
+  .bg-iridescent-vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 38%, transparent 0%, rgba(2,4,8,0.5) 75%);
+  }
+
+  /* ===== CONTENT (page slice) ===== */
+  .stage-content {
+    position: relative; z-index: 2;
+    min-height: 100vh;
+    padding: 6.5rem 1.5rem 4rem;
+  }
+  .navrail {
+    position: absolute; top: 1.2rem; left: 1.5rem; right: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 5;
+    color: var(--text-muted);
+    font: 500 0.58rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em; text-transform: uppercase;
+  }
+  .navrail .brand {
+    color: var(--text);
+    font: 700 0.72rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.24em;
+  }
+  .navrail .links { display: flex; gap: 1.4rem; }
+  .navrail .links a { color: inherit; text-decoration: none; transition: color 180ms; }
+  .navrail .links a:hover { color: var(--text); }
+
+  .hero {
+    max-width: 78rem; margin: 0 auto;
+    position: relative;
+  }
+  .hero-frame {
+    position: relative;
+    padding: 4rem 2rem 3rem;
+    border: 1px solid var(--accent-line);
+    background: linear-gradient(90deg, var(--accent-soft) 0%, transparent 8%, transparent 92%, var(--accent-soft) 100%);
+  }
+  .hero-frame::before, .hero-frame::after {
+    content: ""; position: absolute; top: -1px;
+    width: 6rem; height: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 1.25rem var(--accent-glow);
+  }
+  .hero-frame::before { left: 2rem; }
+  .hero-frame::after { right: 2rem; }
+
+  .eyebrow {
+    color: var(--text-muted);
+    font: 500 0.62rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    margin: 0;
+  }
+  .hero h1 {
+    margin: 1.2rem 0 0;
+    font: 400 clamp(3.5rem, 9vw, 7rem)/0.86 'Anton', 'Space Grotesk', sans-serif;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+    color: #f8fcff;
+    max-width: 24ch;
+  }
+  .hero h1 span { display: block; }
+  .hero p.lede {
+    margin: 1.5rem 0 0;
+    max-width: 42rem;
+    color: var(--text-dim);
+    font-size: 1.02rem;
+    line-height: 1.78;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+  .btn {
+    appearance: none; border: 0;
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 0.95rem 1.3rem;
+    border: 1px solid var(--accent-line);
+    background: linear-gradient(180deg, var(--accent-soft), rgba(255,255,255,0.02));
+    color: #f5fbff;
+    font: 600 0.66rem/1 'Space Grotesk', sans-serif;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+    text-decoration: none;
+  }
+  .btn:hover { background: var(--accent); color: #07090c; border-color: var(--accent); }
+  .btn.ghost {
+    background: transparent;
+    border-color: rgba(255,255,255,0.18);
+    color: var(--text-dim);
+  }
+  .btn.ghost:hover { background: rgba(255,255,255,0.06); color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+  /* below-fold cards row */
+  .card-row {
+    max-width: 78rem; margin: 4.5rem auto 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    padding: 1.3rem;
+    border: 1px solid var(--accent-line);
+    background: rgba(5,11,16,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    min-height: 10rem;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .card .num {
+    color: var(--accent);
+    font: 700 0.62rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.22em;
+  }
+  .card h3 {
+    margin: 2rem 0 0.4rem;
+    font: 700 1.4rem/1 'Anton', sans-serif;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-transform: uppercase;
+  }
+  .card p { margin: 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.65; }
+
+  /* per-variant accent overrides */
+  body[data-variant="community"] {
+    --accent: #ff3b6b; --accent-soft: rgba(255,59,107,0.14); --accent-line: rgba(255,59,107,0.22); --accent-glow: rgba(255,99,124,0.55);
+  }
+  body[data-variant="team"] {
+    --accent: #8beaff; --accent-soft: rgba(139,234,255,0.12); --accent-line: rgba(139,234,255,0.22); --accent-glow: rgba(139,234,255,0.6);
+  }
+  body[data-variant="events"] {
+    --accent: #a594ff; --accent-soft: rgba(124,108,255,0.16); --accent-line: rgba(124,108,255,0.28); --accent-glow: rgba(165,148,255,0.6);
+  }
+  body[data-variant="projects"] {
+    --accent: #f06bff; --accent-soft: rgba(240,107,255,0.14); --accent-line: rgba(240,107,255,0.25); --accent-glow: rgba(240,107,255,0.55);
+  }
+
+  /* hide content meant for other variants */
+  .var-content { display: none; }
+  body[data-variant="community"] .var-content.community,
+  body[data-variant="team"] .var-content.team,
+  body[data-variant="events"] .var-content.events,
+  body[data-variant="projects"] .var-content.projects { display: block; }
+
+  /* footer note */
+  .note {
+    position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    z-index: 30;
+    padding: 0.6rem 1rem;
+    background: rgba(5,11,16,0.7);
+    border: 1px solid rgba(139,234,255,0.14);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: var(--text-muted);
+    font: 500 0.55rem/1.4 'JetBrains Mono', monospace;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-aurora .blob { animation: none !important; }
+    .bg-aurora-scan { animation: none !important; opacity: 0.3; }
+    .bg-beams .beam { animation: none !important; opacity: 0.6 !important; }
+    .bg-beams-marquee .track { animation: none !important; }
+    .bg-iridescent-shimmer { animation: none !important; }
+  }
+
+  @media (max-width: 720px) {
+    .switcher .label { display: none; }
+    .switcher button { padding: 0.5rem 0.8rem; font-size: 0.55rem; }
+    .hero-frame { padding: 3rem 1.2rem 2rem; }
+  }
+</style>
+</head>
+<body data-variant="community">
+
+  <!-- ============== TAB SWITCHER ============== -->
+  <nav class="switcher" aria-label="Page background variants">
+    <span class="label">Page · Background</span>
+    <button data-variant="community" aria-pressed="true">Community</button>
+    <button data-variant="team" aria-pressed="false">Team</button>
+    <button data-variant="events" aria-pressed="false">Events</button>
+    <button data-variant="projects" aria-pressed="false">Projects</button>
+  </nav>
+
+  <!-- ============== BACKGROUND STACK ============== -->
+  <div class="bg-stack" aria-hidden="true">
+    <div class="bg-base"></div>
+
+    <!-- COMMUNITY: aurora silk mesh -->
+    <div class="bg-layer community bg-aurora">
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="blob b3"></div>
+      <div class="blob b4"></div>
+    </div>
+    <div class="bg-layer community bg-aurora-grid"></div>
+    <div class="bg-layer community bg-aurora-scan"></div>
+
+    <!-- TEAM: constellation -->
+    <div class="bg-layer team bg-constellation">
+      <canvas id="constellation-canvas"></canvas>
+      <div class="bg-constellation-vignette"></div>
+    </div>
+
+    <!-- EVENTS: stage beams + marquee -->
+    <div class="bg-layer events bg-beams">
+      <div class="bg-beams-grid"></div>
+      <div class="beam b1"></div>
+      <div class="beam b2 alt"></div>
+      <div class="beam b3"></div>
+      <div class="beam b4 alt"></div>
+      <div class="bg-beams-marquee">
+        <div class="track">
+          <span>Open Lab · Build Night · Workshop · Hackathon ·</span>
+          <span>Open Lab · Build Night · Workshop · Hackathon ·</span>
+          <span>Open Lab · Build Night · Workshop · Hackathon ·</span>
+        </div>
+      </div>
+      <div class="bg-beams-marquee row2">
+        <div class="track">
+          <span>Git starter · React UI · Team Formation · Showcase ·</span>
+          <span>Git starter · React UI · Team Formation · Showcase ·</span>
+          <span>Git starter · React UI · Team Formation · Showcase ·</span>
+        </div>
+      </div>
+      <div class="bg-beams-floor"></div>
+    </div>
+
+    <!-- PROJECTS: iridescent dot grid -->
+    <div class="bg-layer projects bg-iridescent">
+      <canvas id="iridescent-canvas"></canvas>
+      <div class="bg-iridescent-shimmer"></div>
+      <div class="bg-iridescent-vignette"></div>
+    </div>
+
+    <div class="bg-vignette"></div>
+    <div class="bg-grain"></div>
+  </div>
+
+  <!-- ============== STAGE / PAGE CONTENT ============== -->
+  <div class="stage">
+    <div class="navrail">
+      <span class="brand">DEV / CELL · CLUB</span>
+      <div class="links">
+        <a>Community</a><a>Team</a><a>Events</a><a>Projects</a>
+      </div>
+    </div>
+
+    <main class="stage-content">
+
+      <!-- COMMUNITY content -->
+      <div class="var-content community">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Community Channel / Dev Cell</p>
+            <h1>
+              <span>A home for</span>
+              <span>student</span>
+              <span>builders.</span>
+            </h1>
+            <p class="lede">Join the student developer community where you can learn with others, ask for help, build real projects, and ship work you are proud to show.</p>
+            <div class="actions">
+              <a class="btn">Join Community</a>
+              <a class="btn ghost">Meet Core Crew</a>
+            </div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">01 · Path</span><h3>Learn</h3><p>Web basics, Git, APIs, deployment, and modern tools through hands-on sessions.</p></div>
+          <div class="card"><span class="num">02 · Make</span><h3>Build</h3><p>Join small teams working on websites, dashboards, club tools, and campus ideas.</p></div>
+          <div class="card"><span class="num">03 · Help</span><h3>Get Help</h3><p>Ask doubts, review code, debug with seniors. Learn without pretending to know everything.</p></div>
+          <div class="card"><span class="num">04 · Live</span><h3>Ship</h3><p>Turn practice into live demos, GitHub links, hackathon builds, and portfolio work.</p></div>
+        </section>
+      </div>
+
+      <!-- TEAM content -->
+      <div class="var-content team">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Dev Cell · Team</p>
+            <h1>Meet the<br>students building<br>Dev Cell.</h1>
+            <p class="lede">We run sessions, ship projects, organize events, review ideas, and help new members find their first real build.</p>
+            <div class="actions">
+              <a class="btn">Join the Team</a>
+              <a class="btn ghost">Enter Community</a>
+            </div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">Lead</span><h3>Coordinator</h3><p>Keeps the club rhythm clear, welcomes new members, ties projects to events.</p></div>
+          <div class="card"><span class="num">Lead</span><h3>Technical</h3><p>Code reviews, architecture choices, debugging help, cleaner student projects.</p></div>
+          <div class="card"><span class="num">Lead</span><h3>Design</h3><p>UI direction, posters, event pages, the small details that make work feel polished.</p></div>
+          <div class="card"><span class="num">Crew</span><h3>Events</h3><p>Workshops, build nights, speaker sessions, hackathon logistics.</p></div>
+        </section>
+      </div>
+
+      <!-- EVENTS content -->
+      <div class="var-content events">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Dev Cell · Events</p>
+            <h1>Show up,<br>build, leave with<br>progress.</h1>
+            <p class="lede">Workshops, open labs, build nights, and team sessions for students who want to learn by making things.</p>
+            <div class="actions">
+              <a class="btn">See Upcoming Events</a>
+              <a class="btn ghost">Reserve a Seat</a>
+            </div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">FRI · 6PM</span><h3>Open Lab</h3><p>Bring a project, a bug, or just curiosity. Work with other student builders.</p></div>
+          <div class="card"><span class="num">SAT · 11AM</span><h3>Git Starter</h3><p>Beginner-first session on version control, pull requests, collaboration basics.</p></div>
+          <div class="card"><span class="num">TUE · 7PM</span><h3>React Build</h3><p>Layouts, states, and interfaces alongside the frontend crew.</p></div>
+          <div class="card"><span class="num">THU · 5:30</span><h3>Hack Meet</h3><p>Find teammates, shape ideas, get early feedback before sprints begin.</p></div>
+        </section>
+      </div>
+
+      <!-- PROJECTS content -->
+      <div class="var-content projects">
+        <section class="hero">
+          <div class="hero-frame">
+            <p class="eyebrow">Dev Cell · Projects</p>
+            <h1>Build real<br>things with<br>the crew.</h1>
+            <p class="lede">Join practical student projects, take a small task, get feedback, and ship work that the club can actually use.</p>
+            <div class="actions">
+              <a class="btn">See Open Builds</a>
+              <a class="btn ghost">Join a Lane</a>
+            </div>
+          </div>
+        </section>
+        <section class="card-row">
+          <div class="card"><span class="num">Active</span><h3>Club Platform</h3><p>The shared home for Dev Cell: community info, events, projects, small systems.</p></div>
+          <div class="card"><span class="num">Proto</span><h3>Event Board</h3><p>A cleaner way to show upcoming sessions, registration links, and updates.</p></div>
+          <div class="card"><span class="num">Weekly</span><h3>Onboarding</h3><p>A simple flow for welcoming new members and sharing first tasks.</p></div>
+          <div class="card"><span class="num">Ongoing</span><h3>Starter Kits</h3><p>Small repos, setup notes, templates that help new contributors start faster.</p></div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <div class="note">Use the tabs above to compare backgrounds · Each respects prefers-reduced-motion</div>
+
+<script>
+  // ===== TAB SWITCHER =====
+  const buttons = document.querySelectorAll('.switcher button');
+  buttons.forEach(b => b.addEventListener('click', () => {
+    const v = b.dataset.variant;
+    document.body.dataset.variant = v;
+    buttons.forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    // ensure canvases for active variants are running
+    if (v === 'team') startConstellation();
+    if (v === 'projects') startIridescent();
+  }));
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ===== CONSTELLATION (TEAM) =====
+  let constellationRunning = false;
+  function startConstellation() {
+    if (constellationRunning) return;
+    constellationRunning = true;
+    const canvas = document.getElementById('constellation-canvas');
+    const ctx = canvas.getContext('2d');
+    let w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dots = [];
+    const N = 90;
+
+    function resize() {
+      const r = canvas.getBoundingClientRect();
+      w = r.width; h = r.height;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function init() {
+      dots.length = 0;
+      for (let i = 0; i < N; i++) {
+        dots.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.18,
+          vy: (Math.random() - 0.5) * 0.18,
+          r: Math.random() * 1.2 + 0.6,
+          a: Math.random() * 0.5 + 0.25,
+        });
+      }
+    }
+    let mouse = { x: -9999, y: -9999, active: false };
+    window.addEventListener('pointermove', (e) => {
+      if (document.body.dataset.variant !== 'team') return;
+      mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+    });
+
+    const MAX_LINK = 130;
+    function frame() {
+      if (!constellationRunning) return;
+      requestAnimationFrame(frame);
+      if (document.body.dataset.variant !== 'team') return;
+      ctx.clearRect(0, 0, w, h);
+      // draw dots
+      for (const d of dots) {
+        if (!prefersReduced) {
+          d.x += d.vx; d.y += d.vy;
+          if (d.x < 0 || d.x > w) d.vx *= -1;
+          if (d.y < 0 || d.y > h) d.vy *= -1;
+        }
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(139,234,255,${d.a})`;
+        ctx.fill();
+      }
+      // draw links
+      for (let i = 0; i < dots.length; i++) {
+        for (let j = i + 1; j < dots.length; j++) {
+          const a = dots[i], b = dots[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const d2 = dx*dx + dy*dy;
+          if (d2 < MAX_LINK * MAX_LINK) {
+            const t = 1 - Math.sqrt(d2) / MAX_LINK;
+            ctx.strokeStyle = `rgba(139,234,255,${t * 0.18})`;
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+      // mouse glow links
+      if (mouse.active) {
+        for (const d of dots) {
+          const dx = d.x - mouse.x, dy = d.y - mouse.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < 180) {
+            const t = 1 - dist / 180;
+            ctx.strokeStyle = `rgba(139,234,255,${t * 0.45})`;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(d.x, d.y); ctx.lineTo(mouse.x, mouse.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+    window.addEventListener('resize', () => { resize(); init(); });
+    resize(); init(); frame();
+  }
+
+  // ===== IRIDESCENT DOT GRID (PROJECTS) =====
+  let iridescentRunning = false;
+  function startIridescent() {
+    if (iridescentRunning) return;
+    iridescentRunning = true;
+    const canvas = document.getElementById('iridescent-canvas');
+    const ctx = canvas.getContext('2d');
+    let w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const GAP = 28;
+    let dots = [];
+
+    function resize() {
+      const r = canvas.getBoundingClientRect();
+      w = r.width; h = r.height;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      dots = [];
+      const cols = Math.ceil(w / GAP) + 1;
+      const rows = Math.ceil(h / GAP) + 1;
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          dots.push({ x: i * GAP, y: j * GAP });
+        }
+      }
+    }
+    let mouse = { x: w/2, y: h/2, active: false };
+    window.addEventListener('pointermove', (e) => {
+      if (document.body.dataset.variant !== 'projects') return;
+      mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+    });
+
+    let t0 = 0;
+    function frame(t) {
+      if (!iridescentRunning) return;
+      requestAnimationFrame(frame);
+      if (document.body.dataset.variant !== 'projects') return;
+      const time = (t - t0) * 0.001;
+      ctx.clearRect(0, 0, w, h);
+
+      const REVEAL = 200;
+      for (const d of dots) {
+        const dx = d.x - mouse.x, dy = d.y - mouse.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const proximity = mouse.active ? Math.max(0, 1 - dist / REVEAL) : 0;
+        // baseline subtle dot
+        let base = 0.05;
+        // shimmer wave
+        if (!prefersReduced) {
+          base += 0.05 * (0.5 + 0.5 * Math.sin(time * 1.4 + d.x * 0.01 + d.y * 0.012));
+        }
+        const a = base + proximity * 0.55;
+        const r = 1.0 + proximity * 2.4;
+        // chromatic split when close
+        if (proximity > 0.05) {
+          // magenta ghost
+          ctx.fillStyle = `rgba(240,107,255,${proximity * 0.5})`;
+          ctx.beginPath();
+          ctx.arc(d.x - proximity * 2, d.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          // cyan ghost
+          ctx.fillStyle = `rgba(34,211,238,${proximity * 0.35})`;
+          ctx.beginPath();
+          ctx.arc(d.x + proximity * 2, d.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = `rgba(245,251,255,${a})`;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    window.addEventListener('resize', resize);
+    resize();
+    requestAnimationFrame((t) => { t0 = t; frame(t); });
+  }
+
+  // start whichever is currently shown
+  if (document.body.dataset.variant === 'team') startConstellation();
+  if (document.body.dataset.variant === 'projects') startIridescent();
+</script>
+</body>
+</html>
